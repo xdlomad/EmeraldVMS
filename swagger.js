@@ -1,10 +1,22 @@
+/**
+ * @swagger
+ * tags:
+ *   - name: Login
+ *     description: Login as admin, security, or resident
+ *   - name: Manage Users
+ *     description: only available to admin
+ *   - name: Manage Visitors
+ *     description: available to admin, security, and residents
+ *   - name: Manage Visitor Logs
+ *     description: available to admin and security
+ */
 
 /**
  * @swagger
  * /login:
  *   post:
  *     tags:
- *      - Alone Login
+ *      - Login
  *     summary: Perform user login
  *     description: Endpoint for user authentication
  *     security:
@@ -23,36 +35,36 @@
  *              type: string
  *     responses:
  *       200:
- *         description: OK
- *       401:
- *         description: Unauthorized
+ *         description: User logged in successfully
+ *       201:
+ *         description: User logged in failure
  */
 
 /**
  * @swagger
  * /finduser:
- *   get:
+ *   post:
  *     tags:
- *      - User
+ *      - Manage Users
  *     summary: Find user information
  *     description: Retrieve user information based on the provided criteria.
  *     security:
- *       - BearerAuth: []  # Use the security scheme defined in your Swagger definition for authentication
- *     parameters:
- *       - in: query
- *         name: user_id
+ *       - BearerAuth: [] 
+ *     requestBody:
+ *      description: User ID info
+ *      required: true
+ *      content:
+ *        application/json:
  *         schema:
- *           type: string
- *         description: The user_id of the user to find.
+ *          type: object
+ *          properties:
+ *            user_id:
+ *              type: string
+ *          example:
+ *            user_id: "put user id here"
  *     responses:
  *       200:
  *         description: Successful response. User information retrieved.
- *         content:
- *           application/json:
- *             example:
- *               user_id: "example_user"
- *               name: "John Doe"
- *               email: "john@example.com"
  *       401:
  *         description: Unauthorized. Token not valid.
  *       403:
@@ -69,7 +81,7 @@
  * /registeruser:
  *   post:
  *     tags:
- *      - User
+ *      - Manage Users
  *     summary: Register a new user
  *     description: Register a new user with the provided information.
  *     security:
@@ -88,10 +100,6 @@
  *     responses:
  *       200:
  *         description: Successful response. User registered successfully.
- *         content:
- *           application/json:
- *             example:
- *               message: "Registration request processed, new user is John Doe"
  *       400:
  *         description: Bad Request. User already exists.
  *       401:
@@ -108,7 +116,7 @@
  * /updateuser:
  *   patch:
  *     tags:
- *      - User
+ *      - Manage Users
  *     summary: Update user information
  *     description: Update user information based on the provided data.
  *     security:
@@ -147,7 +155,7 @@
  * /deleteuser:
  *   delete:
  *     tags:
- *      - User
+ *      - Manage Users
  *     summary: Delete a user
  *     description: Delete a user based on the provided user_id.
  *     security:
@@ -181,22 +189,44 @@
  * /registervisitor:
  *   post:
  *     tags:
- *      - Visitor
+ *      - Manage Visitors
  *     summary: Register a new visitor
  *     description: Register a new visitor based on the provided data.
  *     security:
  *       - BearerAuth: []  # Use the security scheme defined in your Swagger definition for authentication
  *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           example:
- *             ref: "visitor_reference_number"
+ *      description: User ID info
+ *      required: true
+ *      content:
+ *        application/json:
+ *         schema:
+ *          type: object
+ *          properties:
+ *            ref_num:
+ *              type: string
+ *            name:
+ *              type: string
+ *            IC_num:
+ *              type: string
+ *            car_num:
+ *              type: string
+ *            hp_num:
+ *              type: string
+ *            pass:
+ *              type: string
+ *            category:
+ *              type: string
+ *            visit_date:
+ *              type: string
+ *            unit:
+ *              type: string
+ *          example:
+ *             ref_num: "visitor_reference_number"
  *             name: "Visitor Name"
  *             IC_num: "IC123456"
  *             car_num: "ABC123"
  *             hp_num: "+987654321"
- *             pass: true
+ *             pass: "VISITOR-0A"
  *             category: "Guest"
  *             date: "2023-12-31"
  *             unit: "A101"
@@ -219,84 +249,54 @@
 /**
  * @swagger
  * /findvisitor:
- *   get:
+ *   post:
  *     tags:
- *      - Visitor
+ *      - Manage Visitors
  *     summary: Find visitors based on criteria
  *     description: Retrieve a list of visitors based on the provided criteria. Only residents can find their own visitors.
  *     security:
  *       - BearerAuth: []  # Use the security scheme defined in your Swagger definition for authentication
- *     parameters:
- *       - in: query
- *         name: ref
- *         description: Reference number of the visitor
+ *     requestBody:
+ *      description: User ID info
+ *      required: true
+ *      content:
+ *        application/json:
  *         schema:
- *           type: string
- *       - in: query
- *         name: name
- *         description: Name of the visitor
- *         schema:
- *           type: string
- *       - in: query
- *         name: IC_num
- *         description: IC number of the visitor
- *         schema:
- *           type: string
- *       - in: query
- *         name: car_num
- *         description: Car number of the visitor
- *         schema:
- *           type: string
- *       - in: query
- *         name: hp_num
- *         description: Phone number of the visitor
- *         schema:
- *           type: string
- *       - in: query
- *         name: pass
- *         description: Whether the visitor has a pass (true/false)
- *         schema:
- *           type: boolean
- *       - in: query
- *         name: category
- *         description: Category of the visitor (e.g., Guest, Contractor)
- *         schema:
- *           type: string
- *       - in: query
- *         name: date
- *         description: Visit date of the visitor 
- *         schema:
- *           type: string
- *           format: date
- *       - in: query
- *         name: unit
- *         description: Unit of the visitor
- *         schema:
- *           type: string
+ *          type: object
+ *          properties:
+ *            ref_num:
+ *              type: string
+ *            name:
+ *              type: string
+ *            IC_num:
+ *              type: string
+ *            car_num:
+ *              type: string
+ *            hp_num:
+ *              type: string
+ *            pass:
+ *              type: string
+ *            category:
+ *              type: string
+ *            visit_date:
+ *              type: string
+ *            unit:
+ *              type: string
+ *          example:
+ *             ref_num: "visitor_reference_number"
+ *             name: "Visitor Name"
+ *             IC_num: "IC123456"
+ *             car_num: "ABC123"
+ *             hp_num: "+987654321"
+ *             pass: "VISITOR-0A"
+ *             category: "Guest"
+ *             date: "2023-12-31"
+ *             unit: "A101"
  *     responses:
  *       200:
  *         description: Successful response. List of visitors matching the criteria.
- *         content:
- *           application/json:
- *             example:
- *               - ref_num: "visitor_reference_number"
- *                 name: "Visitor Name"
- *                 IC_num: "IC123456"
- *                 car_num: "ABC123"
- *                 hp_num: "+987654321"
- *                 pass: true
- *                 category: "Guest"
- *                 visit_date: "2023-12-31"
- *                 unit: "A101"
- *               - ref_num: "another_reference_number"
- *                 name: "Another Visitor"
- *                 IC_num: "IC789012"
- *                 car_num: "XYZ789"
- *                 hp_num: "+123456789"
- *                 pass: false
- *                 category: "Contractor"
- *                 visit_date: "2023-12-30"
- *                 unit: "B202"
+ *       404:
+ *         description: Visitor not found.
  *       401:
  *         description: Unauthorized. Token not valid.
  *       500:
@@ -309,63 +309,52 @@
  * /updatevisitor:
  *   patch:
  *     tags:
- *      - Visitor
+ *      - Manage Visitors
  *     summary: Update visitor information
  *     description: Update information of a visitor. Only residents and security can update their own visitors, while admin can update any visitor.
  *     security:
  *       - BearerAuth: []  # Use the security scheme defined in your Swagger definition for authentication
- *     parameters:
- *       - in: body
- *         name: Visitor Update Information
- *         description: JSON object containing the visitor information to be updated
- *         required: true
+ *     requestBody:
+ *      description: User ID info
+ *      required: true
+ *      content:
+ *        application/json:
  *         schema:
- *           type: object
- *           properties:
- *             ref_num:
- *               type: string
- *               description: Reference number of the visitor to be updated
- *               example: visitor_reference_number
- *             name:
- *               type: string
- *               description: Updated name of the visitor
- *               example: Updated Visitor Name
- *             IC_num:
- *               type: string
- *               description: Updated IC number of the visitor
- *               example: IC654321
- *             car_num:
- *               type: string
- *               description: Updated car number of the visitor
- *               example: XYZ789
- *             hp_num:
- *               type: string
- *               description: Updated phone number of the visitor
- *               example: +987654321
- *             pass:
- *               type: boolean
- *               description: Updated pass status of the visitor
- *               example: true
- *             category:
- *               type: string
- *               description: Updated category of the visitor (e.g., Guest, Contractor)
- *               example: Contractor
- *             visit_date:
- *               type: string
- *               format: date
- *               description: Updated visit date of the visitor 
- *               example: 2023-12-31
- *             unit:
- *               type: string
- *               description: Updated unit of the visitor
- *               example: B303
+ *          type: object
+ *          properties:
+ *            ref_num:
+ *              type: string
+ *              example: "visitor_reference_number"
+ *            name:
+ *              type: string
+ *              example: "visitor name"
+ *            IC_num:
+ *              type: string
+ *              example: "IC123456"
+ *            car_num:
+ *              type: string
+ *              example: "ABC123"
+ *            hp_num:
+ *              type: string
+ *              example: "+987654321"
+ *            pass:
+ *              type: string
+ *              example: "VISITOR"
+ *            category:
+ *              type: string
+ *              example: "Guest"
+ *            visit_date:
+ *              type: string
+ *              example: "2023-12-31"
+ *            unit:
+ *              type: string
+ *              example: "A101"
  *     responses:
  *       200:
  *         description: Successful response. Visitor information updated.
  *         content:
  *           application/json:
  *             example:
- *               ref_num: "visitor_reference_number"
  *               name: "Updated Visitor Name"
  *               IC_num: "IC654321"
  *               car_num: "XYZ789"
@@ -376,6 +365,8 @@
  *               unit: "B303"
  *       401:
  *         description: Unauthorized. Token not valid.
+ *       404:
+ *         description: Visitor not found.
  *       500:
  *         description: Internal Server Error. Something went wrong on the server.
  */
@@ -386,23 +377,22 @@
  * /deletevisitor:
  *   delete:
  *     tags:
- *       - Visitor
+ *       - Manage Visitors
  *     summary: Delete a visitor
  *     description: Delete a visitor based on the reference number. Only residents and security can delete their own visitors, while admin can delete any visitor.
  *     security:
  *       - BearerAuth: []  # Use the security scheme defined in your Swagger definition for authentication
- *     parameters:
- *       - in: body
- *         name: Visitor Deletion Information
- *         description: JSON object containing the reference number of the visitor to be deleted
- *         required: true
+ *     requestBody:
+ *      description: User ID info
+ *      required: true
+ *      content:
+ *        application/json:
  *         schema:
- *           type: object
- *           properties:
- *             ref_num:
- *               type: string
- *               description: Reference number of the visitor to be deleted
- *               example: visitor_reference_number
+ *          type: object
+ *          properties:
+ *            ref_num:
+ *              type: string
+ *              example: "visitor_reference_number"
  *     responses:
  *       200:
  *         description: Successful response. Visitor deleted.
@@ -412,6 +402,8 @@
  *               message: "The visitor under reference number of visitor_reference_number has been deleted :D!"
  *       401:
  *         description: Unauthorized. Token not valid.
+ *       404:
+ *         description: Visitor not found.
  *       500:
  *         description: Internal Server Error. Something went wrong on the server.
  */
@@ -419,24 +411,22 @@
 
 /**
  * @swagger
- * /createQRvisitor:
+ * /createQRvisitor/{IC_num}:
  *   get:
  *     tags:
- *       - Visitor
+ *       - Manage Visitors
+ *     security:
+ *       - BearerAuth: [] 
  *     summary: Create QR code for visitor
  *     description: |
  *       Create a QR code for a visitor based on their IC number.
  *       The QR code contains visitor information such as reference number, name, category, and contact number.
  *     parameters:
- *       - in: body
- *         name: Visitor Information
- *         description: Visitor information for creating QR code
- *         schema:
- *           type: object
- *           properties:
- *             IC_num:
- *               type: string
- *               description: IC number of the visitor
+ *      - in: path
+ *        name: IC_num
+ *        required: true
+ *        type: string
+ *        description: The IC_NUM.
  *     responses:
  *       200:
  *         description: QR code created successfully
@@ -462,8 +452,6 @@
  *                 error:
  *                   type: string
  *                   description: Error message
- *     security:
- *       - bearerAuth: []
  */
 
 
@@ -473,7 +461,9 @@
  * /checkIn:
  *   post:
  *     tags:
- *       - Visitor Log
+ *       - Manage Visitor Logs
+ *     security:
+ *       - BearerAuth: [] 
  *     summary: Create a visitor log
  *     description: |
  *       Create a visitor log for check-in. Only security and admin roles are allowed to create logs.
@@ -515,31 +505,33 @@
  *                 error:
  *                   type: string
  *                   description: Error message
- *     security:
- *       - bearerAuth: []
+ *       401:
+ *         description: Invalid token
  */
 
 
 /**
  * @swagger
  * /findvisitorlog:
- *   get:
+ *   post:
  *     tags:
- *       - Visitor Log
+ *       - Manage Visitor Logs
+ *     security:
+ *       - BearerAuth: [] 
  *     summary: Find visitor logs
  *     description: |
  *       Find visitor logs based on specified criteria. Only security and admin roles are allowed to find logs.
- *     parameters:
- *       - in: query
- *         name: log_id
- *         schema:
- *           type: string
- *         description: Optional. Log ID to filter logs.
- *       - in: query
- *         name: ref_num
- *         schema:
- *           type: string
- *         description: Optional. Reference number of the visitor to filter logs.
+ *     requestBody:
+ *       description: Visitor log information for check-in
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               log_id:
+ *                 type: string
+ *                 description: Unique log ID
  *     responses:
  *       200:
  *         description: Visitor logs found successfully
@@ -577,8 +569,6 @@
  *                 error:
  *                   type: string
  *                   description: Error message
- *     security:
- *       - bearerAuth: []
  */
 
 
@@ -587,7 +577,9 @@
  * /checkOut:
  *   patch:
  *     tags:
- *       - Visitor Log
+ *       - Manage Visitor Logs
+ *     security:
+ *       - BearerAuth: [] 
  *     summary: Update a visitor log to checkout visitor
  *     description: |
  *       Update the specified visitor log to mark the visitor as checked out. Only security and admin roles are allowed to update logs.
@@ -616,7 +608,5 @@
  *                 error:
  *                   type: string
  *                   description: Error message
- *     security:
- *       - bearerAuth: []
  */
 

@@ -70,39 +70,36 @@ app.use('/VMS', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 //login POST request
 app.post('/login', async (req, res) => {
     let data = req.body
-    console.log(req.body)
     let result = await login(data);
+    console.log(result);
     const loginuser = result.verify
     const token = result.token
     //check the returned result if its a object, only then can we welcome the user
     if (typeof loginuser == "object") { 
-      res.write(loginuser.user_id + " has logged in!")
-      res.write("\nWelcome "+ loginuser.name + "!")
-      res.end("\nYour token : " + token)
+      res.status(200).send(loginuser.user_id + " has logged in!\nWelcome "+ loginuser.name + "!\nYour token : " + token)
     }else {
       //else send the failure message
-      res.send(errorMessage() + result)
+      res.status(201).send(errorMessage() + result)
     }
   });
 
 //find user GET request
-app.get('/finduser', verifyToken, async (req, res)=>{
+app.post('/finduser', verifyToken, async (req, res)=>{
   let authorize = req.user.role //reading the token for authorisation
-  console.log(user);
   let data = req.body //requesting the data from body
   //checking the role of user
   if (authorize == "resident"|| authorize == "security"){
-    res.send(errorMessage() + "\nyou do not have access to finding users!")
+    res.status(403).send(errorMessage() + "\nyou do not have access to finding users!")
   }else if (authorize == "admin"){
     const newUser = await findUser(data) //calling the function to find user
     if (newUser){ //checking if user exist
-      res.send(newUser)
+      res.status(200).send(newUser)
     }else{
-      res.send(errorMessage() + "User does not exist sadly :[")
+      res.status(203).send(errorMessage() + "User does not exist sadly :[")
     }
   //token does not exist
   }else {
-      res.send(errorMessage() + "Token not valid!")
+      res.status(403).send(errorMessage() + "Token not valid!")
     }
   })
 
@@ -112,17 +109,17 @@ app.post('/registeruser', verifyToken, async (req, res)=>{
   let data = req.body //requesting the data from body
   //checking the role of user
   if (authorize == "security" || authorize == "resident"){
-    res.send("you do not have access to registering users!")
+    res.status(403).send("you do not have access to registering users!")
   }else if (authorize == "admin" ){
     const newUser = await registerUser(data)
     if (newUser){ //checking is registration is succesful
-      res.send("Registration request processed, new user is " + newUser.name)
+      res.status(200).send("Registration request processed, new user is " + newUser.name)
     }else{
-      res.send(errorMessage() + "User already exists!")
+      res.status(400).send(errorMessage() + "User already exists!")
     }
   //token does not exist
   }else {
-      res.send(errorMessage() + "Token not valid!")
+      res.status(403).send(errorMessage() + "Token not valid!")
     }
   })
 
@@ -136,12 +133,12 @@ app.patch('/updateuser', verifyToken, async (req, res)=>{
   }else if (authorize == "admin" ){
     const result = await updateUser(data)
     if (result){ // checking if the user exist and updated
-      res.send("User updated! " + result.value.name)
+      res.status(200).send("User updated! " + result.name)
     }else{
-      res.send(errorMessage() + "User does not exist!")
+      res.status(400).send(errorMessage() + "User does not exist!")
     }
   }else {
-      res.send(errorMessage() + "Token is not found!")
+      res.status(403).send(errorMessage() + "Invalid permissions")
     }
 })
 
@@ -152,17 +149,17 @@ app.delete('/deleteuser', verifyToken, async (req, res)=>{
   let authorize = req.user.role
   //checking the role of user
   if (authorize == "security" || authorize == "resident"){
-    res.send("you do not have access to registering users!")
+    res.status(403).send("you do not have access to registering users!")
   }else if (authorize == "admin" ){
     const result = await deleteUser(data)
     //checking if item is deleted
     if (result.deletedCount == "1"){
       res.send("user deleted " + data.user_id)
     }else{
-      res.send(errorMessage() + "Cannot find the user to delete!")
+      res.status(400).send(errorMessage() + "Cannot find the user to delete!")
     }
   }else {
-      res.send(errorMessage() + "Token not valid!")
+      res.status(401).send(errorMessage() + "Token not valid!")
     }
   }
 )
@@ -176,26 +173,26 @@ app.post('/registervisitor', verifyToken, async (req, res)=>{
   if(authorize){
   const visitorData = await registerVisitor(data, loginUser) //register visitor
     if (visitorData){
-      res.send("Registration request processed, visitor is " + visitorData.name)
+      re.status(200).send("Registration request processed, visitor is " + visitorData.name)
     }else{
-      res.send(errorMessage() + "Visitor already exists! Add a visit log instead!")
+      res.status(400).send(errorMessage() + "Visitor already exists! Add a visit log instead!")
     }
   }else {
-      res.send(errorMessage() + "Not a valid token!")
+      res.status(401).send(errorMessage() + "Not a valid token!")
     }
   }
 )
 
 //find visitor GET request
-app.get('/findvisitor', verifyToken, async (req, res)=>{
+app.post('/findvisitor', verifyToken, async (req, res)=>{
   let authorize = req.user//reading the token for authorisation
   let data = req.body //requesting the data from body
   //checking the role of user
   if (authorize.role){
     const result = await findVisitor(data,authorize) //find visitor
-    res.send(result)
+    res.status(200).send(result)
   }else{
-    res.send(errorMessage() + "Not a valid token!") 
+    res.status(401).send(errorMessage() + "Not a valid token!") 
   }
   })
 
@@ -206,14 +203,15 @@ app.patch('/updatevisitor', verifyToken, async (req, res)=>{
   let data = req.body
   //checking if token is valid
   if(authorize.role){
-    const result = await updateVisitor(data,authorize) // update visitor
+    const result = await updateVisitor(data,authorize) 
+    console.log(result);// update visitor
     if (result){
-      res.send("Visitor " + result.value.user_id + " has been updated :D!")
+      res.status(200).send("Visitor " + result.name + " has been updated :D!")
     }else{
-      res.send(errorMessage() + "Visitor does not exist!")
+      res.status(404).send(errorMessage() + "Visitor does not exist!")
     }
   }else {
-      res.send(errorMessage() + "Not a valid token!")
+      res.status(401).send(errorMessage() + "Not a valid token!")
     }
 })
 
@@ -226,30 +224,30 @@ app.delete('/deletevisitor', verifyToken, async (req, res)=>{
   if(authorize.role){
   const deletedV = await deleteVisitor(data,authorize) //delete visitor
     if (deletedV.deletedCount == "1"){ //check for successful delete
-      res.send("The visitor under reference number of " + data.ref_num + " has been deleted :D!")
+      res.status(200).send("The visitor under reference number of " + data.ref_num + " has been deleted :D!")
     }else{
-      res.send(errorMessage() + "No such visitor found D: , perhaps you actually wished your ex visited?")
+      res.status(404).send(errorMessage() + "No such visitor found D: , perhaps you actually wished your ex visited?")
     }
   }else {
-      res.send(errorMessage() + "Not a valid token!")
+      res.status(401).send(errorMessage() + "Not a valid token!")
     }
   }
 )
 
 //create a qr code for visitor
-app.get('/createQRvisitor', verifyToken, async (req, res)=>{
-  let data = req.body
+app.get('/createQRvisitor/:IC_num', verifyToken, async (req, res)=>{
+  let data = req.params.IC_num
   let authorize = req.user
+  console.log(data);
   if (authorize.role){ //checking if token is valid
   const uri = await qrCreate(data) //create qr code
     if (uri){
-      res.write("QR code created for visitor! Paste the link below into a browser :D\n")
-      res.end(uri)
+      res.status(200).send("QR code created for visitor! Paste the link below into a browser :D\n"+ uri)
     }else{
-      res.send(errorMessage() + "No such visitor found")
+      res.status(404).send(errorMessage() + "No such visitor found")
     }
   }else {
-      res.send(errorMessage() + "Not a valid token!")
+      res.status(401).send(errorMessage() + "Not a valid token!")
     }
   }
 )
@@ -263,28 +261,28 @@ app.post('/checkIn', verifyToken, async (req, res,err)=>{
   { //roles that can create visitor logs
     const logData = await createLog(data,req.user) //create logs
     if (logData){
-      res.send({message : "Visitor Log Created!", logData})
+      res.status(200).send({message : "Visitor Log Created!", logData})
     }else{
-      res.send(errorMessage() + "Duplicate Log! Might wanna find the admin")
+      res.status(400).send(errorMessage() + "Duplicate Log! Might wanna find the admin")
     }
   }else if (authorize == "resident" ){
-    res.send(errorMessage() + "You do not have access to create visitor logs!")
+    res.status(401).send(errorMessage() + "You do not have access to create visitor logs!")
   }else{
-    res.send(errorMessage() + "token not valid D:")
+    res.status(401).send(errorMessage() + "token not valid D:")
     }
   })
 
 //find visitor log
-app.get('/findvisitorlog', verifyToken, async (req, res)=>{
+app.post('/findvisitorlog', verifyToken, async (req, res)=>{
     let authorize = req.user.role //reading the token for authorisation
     let data = req.body //requesting the data from body
     //checking the role of user
     if (authorize == "resident"){
-      res.send(errorMessage() + "you do not have access to registering users!")
+      res.status(401).send(errorMessage() + "you do not have access to registering users!")
     }
     else if (authorize == "security" || authorize == "admin"){
       const result = await findLog(data) //find logs
-      res.send(result)
+      res.status(200).send(result)
     }
   }
   )
@@ -296,14 +294,14 @@ app.patch('/checkOut', verifyToken, async (req, res)=>{
   if (authorize == "security" || authorize == "admin"){ //check roles that can update visitor logs
     const logData = await updateLog(data)
     if (typeof logData == "object"){ //if returned data is object, means log is updated
-      res.send( "Visitor succesfully checkout")
+      res.status(200).send( "Visitor succesfully checkout")
     }else{
-      res.send(errorMessage() + "Could not find log :[")
+      res.status(400).send(errorMessage() + "Could not find log :[")
     }
   }else if (authorize == "resident" ){
     res.send("You do not have access to update visitor logs!")
   }else{
-    res.send(errorMessage() + "Please enter a valid role!")
+    res.status(400).send(errorMessage() + "Please enter a valid role!")
     }
   })
 
@@ -312,8 +310,6 @@ async function login(data) {
   console.log("Alert! Alert! Someone is logging in!") //Display message to ensure function is called
   //Verify username is in the database
   let verify = await user.find({user_id : data.user_id}).next();
-  console.log(data.user_id)
-  console.log(verify)
   if (verify){
     //verify password is correct
     const correctPassword = await bcrypt.compare(data.password,verify.password);
@@ -360,7 +356,7 @@ async function updateUser(data) {
   data.password = await encryption(data.password) //encrypt the password
   }
   result = await user.findOneAndUpdate({user_id : data.user_id},{$set : data}, {new: true})
-  if(result.value == null){ //check if user exist
+  if(result == null){ //check if user exist
     return 
   }else{
     return (result)
@@ -399,14 +395,14 @@ async function registerVisitor(newdata, currentUser) {
 async function findVisitor(newdata, currentUser){
   if (currentUser.role == "resident"){
     filter=Object.assign(newdata, {"user_id" : currentUser.user_id}) // only allow resident to find their own visitors
-    match = await visitor.find(filter, {projection: {_id :0}}).toArray()
+    match = await visitor.find(filter, {projection: {_id :0}}).next()
   }else if (currentUser.role == "security" || currentUser.role == "admin"){ // allow security and admin to find all visitors
-    match = await visitor.find(newdata).toArray()
+    match = await visitor.find(newdata).next()
   }
-  if (match.length != 0){ //check if there is any visitor
+  if (match != 0){ //check if there is any visitor
     return (match)
   } else{
-    return (errorMessage() + "Visitor does not exist!")
+    res.status() (errorMessage() + "Visitor does not exist!")
   }
 }
 
@@ -416,7 +412,7 @@ async function updateVisitor(data, currentUser) {
   }else if (currentUser.role == "admin"){
     result = await visitor.findOneAndUpdate({"ref_num": data.ref_num},{$set : data}, {new:true}) //allow admin to update all visitors
   }
-  if(result.value == null){ //check if visitor exist
+  if(result== null){ //check if visitor exist
     return 
   }else{
     return (result)
@@ -434,6 +430,7 @@ async function deleteVisitor(newdata, currentUser) {
 
 async function createLog(newdata,currentUser) {
   //verify if there is duplicate log id
+  console.log(newdata)
   const match = await visitorLog.find({"log_id": newdata.log_id}).next()
     if (match) {
       return 
@@ -456,7 +453,7 @@ async function updateLog(newdata) {
   //verify if username is already in databse
   let dateTime = currentTime()
   const newLog = await visitorLog.findOneAndUpdate({"log_id": newdata.log_id},{$set : {CheckOut_Time: dateTime}}) //update the checkout time
-    if (newLog.value == null) { //check if log exist
+    if (newLog == null) { //check if log exist
       return 
     } else {
         return (newLog)
@@ -465,7 +462,7 @@ async function updateLog(newdata) {
 
 //function to create qrcode file
 async function qrCreate(data){
-  visitorData = await visitor.find({"IC_num" : data.IC_num}, {projection : {"ref_num" : 1 , "name" : 1 , "category" : 1 , "hp" : 1, "_id" : 0}}).next() //find visitor data
+  visitorData = await visitor.find({"IC_num" : data}, {projection : {"ref_num" : 1 , "name" : 1 , "category" : 1 , "hp" : 1, "_id" : 0}}).next() //find visitor data
   if(visitorData){ //check if visitor exist
     let stringdata = JSON.stringify(visitorData)
     const base64 = await qrCode_c.toDataURL(stringdata) //convert to qr code to data url
@@ -500,14 +497,14 @@ function generateToken(loginProfile){
 function verifyToken(req, res, next){
   if (!req.headers.authorization)
   {
-    res.send(errorMessage() + "Token is not found D:")
+    res.status(401).send(errorMessage() + "Token is not found D:")
     return
   }
   let header = req.headers.authorization
   let token = header.split(' ')[1] //checking header
   jwt.verify(token,'UltimateSuperMegaTitanicBombasticGreatestBestPOGMadSuperiorTheOneandOnlySensationalSecretPassword',function(err,decoded){
     if(err) {
-      res.send(errorMessage() + "Token is not valid D:, go to the counter to exchange (joke)")
+      res.status(401).send(errorMessage() + "Token is not valid D:, go to the counter to exchange (joke)")
       return
     }
     req.user = decoded // bar
