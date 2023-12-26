@@ -28,7 +28,7 @@ Authorization: Bearer
 ###
 POST http://localhost:3000/registeruser
 Content-Type: application/json 
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NDg3M2EyNDhjMGZmYzc5NGQ4ZGMxNzEiLCJ1c2VyX2lkIjoiQTMxMDAiLCJwYXNzd29yZCI6IiQyYiQxMCRmM1I0LklYc2l4aFRtcnlXOGVVYzEuM1cxRDVpMWEzd2xtSlNnSHBQdDlRY3Z3aWVlYUR5RyIsIm5hbWUiOiJyb2NrZXQiLCJ1bml0IjoibWFuYWdlbWVudCIsImhwX251bSI6IjMxMjMyIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzAzNTY2MTk4LCJleHAiOjE3MDM1Njk3OTh9.VLaTPhtwr_AvvNU_xGQGsgH5m1iSNf9_jEyzqgA3Qs8
+Authorization: Bearer 
 
 {
     "user_id": "R5552",

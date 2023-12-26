@@ -25,10 +25,10 @@ const client = new MongoClient(uri, {
 client.connect() 
 
 //variables to define which collection used
-const user = client.db("Visitor_Management_v1").collection("users")
-const visitor = client.db("Visitor_Management_v1").collection("visitors")
-const visitorLog = client.db("Visitor_Management_v1").collection("visitor_log")
-
+const user = client.db("EmeraldVMS").collection("users")
+const visitor = client.db("EmeraldVMS").collection("visitors")
+const visitorLog = client.db("EmeraldVMS").collection("visitor_log")
+const pending = client.db("EmeraldVMS").collection("Pending_users")
 //app.use(express.json())
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -71,7 +71,6 @@ app.use('/VMS', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.post('/login', async (req, res) => {
     let data = req.body
     let result = await login(data);
-    console.log(result);
     const loginuser = result.verify
     const token = result.token
     //check the returned result if its a object, only then can we welcome the user
@@ -84,9 +83,9 @@ app.post('/login', async (req, res) => {
   });
 
 //find user GET request
-app.post('/finduser', verifyToken, async (req, res)=>{
+app.get('/finduser/:name', verifyToken, async (req, res)=>{
   let authorize = req.user.role //reading the token for authorisation
-  let data = req.body //requesting the data from body
+  let data = req.params.name //requesting the data from body
   //checking the role of user
   if (authorize == "resident"|| authorize == "security"){
     res.status(403).send(errorMessage() + "\nyou do not have access to finding users!")
@@ -115,7 +114,7 @@ app.post('/registeruser', verifyToken, async (req, res)=>{
     if (newUser){ //checking is registration is succesful
       res.status(200).send("Registration request processed, new user is " + newUser.name)
     }else{
-      res.status(400).send(errorMessage() + "User already exists!")
+      res.status(400).send(errorMessage() + "User already exist!")
     }
   //token does not exist
   }else {
@@ -123,6 +122,37 @@ app.post('/registeruser', verifyToken, async (req, res)=>{
     }
   })
 
+//register user post request
+app.post('/registerResident', async (req, res)=>{
+  let data = req.body //requesting the data from body
+  //checking the role of user
+    const newUser = await registerResident(data)
+    if (newUser){ //checking is registration is succesful
+      res.status(200).send("Registration request processed, please wait for admin approval " + newUser.name)
+    }else{
+      res.status(400).send(errorMessage() + "Approval Pending or User already exist")
+    }
+  //token does not exist
+  })
+
+  //register user post request
+app.get('/checkPendings',verifyToken, async (req, res)=>{
+  //checking the role of user
+  let authorize = req.user.role //reading the token for authorisation
+  if (authorize == "security" || authorize == "resident"){
+    res.status(403).send("you do not have access to viewing pending request!")
+  }else if (authorize == "admin" ){
+    const pendingList = await pending.find().toArray();
+    if (pendingList){ //checking is registration is succesful
+      res.status(200).send(pendingList)
+    }else { 
+      res.status(400).send("No requests pending!")
+    }
+  //token does not exist
+  }else{
+    res.status(401).send(errorMessage() + "Token not valid!")
+  }
+})
 //update user PATCH request
 app.patch('/updateuser', verifyToken, async (req, res)=>{
   let authorize = req.user.role //reading the token for authorisation
@@ -184,9 +214,9 @@ app.post('/registervisitor', verifyToken, async (req, res)=>{
 )
 
 //find visitor GET request
-app.post('/findvisitor', verifyToken, async (req, res)=>{
+app.get('/findvisitor/:ref_num', verifyToken, async (req, res)=>{
   let authorize = req.user//reading the token for authorisation
-  let data = req.body //requesting the data from body
+  let data = req.params.ref_num //requesting the data from body
   //checking the role of user
   if (authorize.role){
     const result = await findVisitor(data,authorize) //find visitor
@@ -325,7 +355,7 @@ async function login(data) {
 
 async function findUser(newdata) {
   //verify if there is duplicate username in databse
-  const match = await user.find({user_id : newdata.user_id},{projection: {password: 0, _id : 0}}).next()
+  const match = await user.find({name : newdata},{projection: {password: 0, _id : 0}}).next()
   return (match)
 }
 
@@ -347,10 +377,36 @@ async function registerUser(newdata) {
         "role" : newdata.role
       })
   const newUser=await user.find({user_id : newdata.user_id}).next()
-  console.log(newUser)
   return (newUser)
 }}
-    
+
+async function registerResident(newdata) {
+  //verify if there is duplicate username in databse
+  const match = await pending.find({user_id : newdata.user_id}).next()
+  const match2 = await user.find({user_id : newdata.user_id}).next()
+  if (match) {
+      return 
+    } else {
+      if (match2){
+        return
+      }else{
+      //encrypt password by hashing
+      const hashed = await encryption(newdata.password)
+      // add info into database
+      await pending.insertOne({
+        "user_id": newdata.user_id,
+        "password": hashed,
+        "name": newdata.name,
+        "unit": newdata.unit,
+        "hp_num" : newdata.hp_num,
+        "role" : "resident"
+        
+      })
+  const newUser=await pending.find({user_id : newdata.user_id}).next()
+  return (newUser)
+}
+}}
+
 async function updateUser(data) {
   if (data.password){
   data.password = await encryption(data.password) //encrypt the password
@@ -397,7 +453,7 @@ async function findVisitor(newdata, currentUser){
     filter=Object.assign(newdata, {"user_id" : currentUser.user_id}) // only allow resident to find their own visitors
     match = await visitor.find(filter, {projection: {_id :0}}).next()
   }else if (currentUser.role == "security" || currentUser.role == "admin"){ // allow security and admin to find all visitors
-    match = await visitor.find(newdata).next()
+    match = await visitor.find({"ref_num":newdata}).next()
   }
   if (match != 0){ //check if there is any visitor
     return (match)
@@ -430,7 +486,6 @@ async function deleteVisitor(newdata, currentUser) {
 
 async function createLog(newdata,currentUser) {
   //verify if there is duplicate log id
-  console.log(newdata)
   const match = await visitorLog.find({"log_id": newdata.log_id}).next()
     if (match) {
       return 

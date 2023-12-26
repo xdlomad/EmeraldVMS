@@ -2,7 +2,7 @@
  * @swagger
  * tags:
  *   - name: Login
- *     description: Login as admin, security, or resident
+ *     description: Login as admin, security, or resident. Register as a new resident.
  *   - name: Manage Users
  *     description: only available to admin
  *   - name: Manage Visitors
@@ -19,8 +19,6 @@
  *      - Login
  *     summary: Perform user login
  *     description: Endpoint for user authentication
- *     security:
- *       - BearerAuth: []
  *     requestBody:
  *      description: User login information
  *      required: true
@@ -42,26 +40,51 @@
 
 /**
  * @swagger
- * /finduser:
+ * /registerResident:
  *   post:
+ *     tags:
+ *      - Login
+ *     summary: New Resident registering
+ *     description: Register as a new user with the provided information.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           example:
+ *             user_id: "new_user"
+ *             password: "password123"
+ *             name: "John Doe"
+ *             unit: "Apartment A"
+ *             hp_num: "+123456789"
+ *     responses:
+ *       200:
+ *         description: Successful response. Please wait for admin to approve registration.
+ *       400:
+ *         description: Bad Request. User already exists.
+ *       401:
+ *         description: Unauthorized. Token not valid.
+ *       403:
+ *         description: Forbidden. User does not have access to registering users.
+ *       500:
+ *         description: Internal Server Error. Something went wrong on the server.
+ */
+
+/**
+ * @swagger
+ * /finduser/{name}:
+ *   get:
  *     tags:
  *      - Manage Users
  *     summary: Find user information
  *     description: Retrieve user information based on the provided criteria.
  *     security:
  *       - BearerAuth: [] 
- *     requestBody:
- *      description: User ID info
- *      required: true
- *      content:
- *        application/json:
- *         schema:
- *          type: object
- *          properties:
- *            user_id:
- *              type: string
- *          example:
- *            user_id: "put user id here"
+ *     parameters:
+ *      - in: path
+ *        name: name
+ *        required: true
+ *        type: string
+ *        description: the name
  *     responses:
  *       200:
  *         description: Successful response. User information retrieved.
@@ -186,6 +209,58 @@
 
 /**
  * @swagger
+ * /checkPendings:
+ *   get:   
+ *     tags:
+ *      - Manage Users
+ *     security:
+ *       - BearerAuth: [] 
+ *     summary: Checking pending registration request
+ *     description: Check pending registration as a new residents requests as admin.
+ *     responses:
+ *       200:
+ *         description: Shows list of pending registration requests.
+ *       400:
+ *         description: No pending registration request.
+ *       401:
+ *         description: Unauthorized. Token not valid.
+ *       403:
+ *         description: Forbidden. User does not have access to registering users.
+ *       500:
+ *         description: Internal Server Error. Something went wrong on the server.
+ */
+
+
+/**
+ * @swagger
+ * /findvisitor/{ref_num}:
+ *   get:
+ *     tags:
+ *      - Manage Visitors
+ *     summary: Find visitors based on criteria
+ *     description: Retrieve a list of visitors based on the provided criteria. Only residents can find their own visitors.
+ *     security:
+ *       - BearerAuth: []  # Use the security scheme defined in your Swagger definition for authentication
+ *     parameters:
+ *      - in: path
+ *        name: ref_num
+ *        required: true
+ *        type: string
+ *        description: The ref_num.
+ *     responses:
+ *       200:
+ *         description: Successful response. List of visitors matching the criteria.
+ *       404:
+ *         description: Visitor not found.
+ *       401:
+ *         description: Unauthorized. Token not valid.
+ *       500:
+ *         description: Internal Server Error. Something went wrong on the server.
+ */
+
+
+/**
+ * @swagger
  * /registervisitor:
  *   post:
  *     tags:
@@ -204,32 +279,31 @@
  *          properties:
  *            ref_num:
  *              type: string
+ *              example: "615671031"
  *            name:
  *              type: string
+ *              example: "zenitsu"
  *            IC_num:
  *              type: string
+ *              example: "111131-07-6121"
  *            car_num:
  *              type: string
+ *              example: "UTeM 5555"
  *            hp_num:
  *              type: string
+ *              example: "012-61942211"
  *            pass:
  *              type: string
+ *              example: "DELIVERY_0A"
  *            category:
  *              type: string
+ *              example: "DELIVERY"
  *            visit_date:
  *              type: string
+ *              example: "2023-06-30"
  *            unit:
  *              type: string
- *          example:
- *             ref_num: "visitor_reference_number"
- *             name: "Visitor Name"
- *             IC_num: "IC123456"
- *             car_num: "ABC123"
- *             hp_num: "+987654321"
- *             pass: "VISITOR-0A"
- *             category: "Guest"
- *             date: "2023-12-31"
- *             unit: "A101"
+ *              example: "T-7-4"
  *     responses:
  *       200:
  *         description: Successful response. Visitor registered successfully.
@@ -248,70 +322,12 @@
 
 /**
  * @swagger
- * /findvisitor:
- *   post:
- *     tags:
- *      - Manage Visitors
- *     summary: Find visitors based on criteria
- *     description: Retrieve a list of visitors based on the provided criteria. Only residents can find their own visitors.
- *     security:
- *       - BearerAuth: []  # Use the security scheme defined in your Swagger definition for authentication
- *     requestBody:
- *      description: User ID info
- *      required: true
- *      content:
- *        application/json:
- *         schema:
- *          type: object
- *          properties:
- *            ref_num:
- *              type: string
- *            name:
- *              type: string
- *            IC_num:
- *              type: string
- *            car_num:
- *              type: string
- *            hp_num:
- *              type: string
- *            pass:
- *              type: string
- *            category:
- *              type: string
- *            visit_date:
- *              type: string
- *            unit:
- *              type: string
- *          example:
- *             ref_num: "visitor_reference_number"
- *             name: "Visitor Name"
- *             IC_num: "IC123456"
- *             car_num: "ABC123"
- *             hp_num: "+987654321"
- *             pass: "VISITOR-0A"
- *             category: "Guest"
- *             date: "2023-12-31"
- *             unit: "A101"
- *     responses:
- *       200:
- *         description: Successful response. List of visitors matching the criteria.
- *       404:
- *         description: Visitor not found.
- *       401:
- *         description: Unauthorized. Token not valid.
- *       500:
- *         description: Internal Server Error. Something went wrong on the server.
- */
-
-
-/**
- * @swagger
  * /updatevisitor:
  *   patch:
  *     tags:
  *      - Manage Visitors
- *     summary: Update visitor information
- *     description: Update information of a visitor. Only residents and security can update their own visitors, while admin can update any visitor.
+ *     summary: Update visitor information based on criteria
+ *     description: Update information except for ref_num as ref_num is used for identification of the information. Only residents and security can update their own visitors, while admin can update any visitor.
  *     security:
  *       - BearerAuth: []  # Use the security scheme defined in your Swagger definition for authentication
  *     requestBody:
@@ -324,31 +340,31 @@
  *          properties:
  *            ref_num:
  *              type: string
- *              example: "visitor_reference_number"
+ *              example: "615671031"
  *            name:
  *              type: string
- *              example: "visitor name"
+ *              example: "891004-07-0110"
  *            IC_num:
  *              type: string
- *              example: "IC123456"
+ *              example: "01109876123"
  *            car_num:
  *              type: string
- *              example: "ABC123"
+ *              example: "WWW7777"
  *            hp_num:
  *              type: string
  *              example: "+987654321"
  *            pass:
  *              type: string
- *              example: "VISITOR"
+ *              example: "SERVICE-B"
  *            category:
  *              type: string
- *              example: "Guest"
+ *              example: "Maintenance"
  *            visit_date:
  *              type: string
- *              example: "2023-12-31"
+ *              example: "2023-09-12"
  *            unit:
  *              type: string
- *              example: "A101"
+ *              example: "SWIMMING POOL"
  *     responses:
  *       200:
  *         description: Successful response. Visitor information updated.
@@ -392,7 +408,7 @@
  *          properties:
  *            ref_num:
  *              type: string
- *              example: "visitor_reference_number"
+ *              example: "647112110" 
  *     responses:
  *       200:
  *         description: Successful response. Visitor deleted.
@@ -478,9 +494,11 @@
  *               log_id:
  *                 type: string
  *                 description: Unique log ID
+ *                 example: "3" 
  *               ref:
  *                 type: string
  *                 description: Reference number of the visitor
+ *                 example: "672831021"
  *     responses:
  *       200:
  *         description: Visitor log created successfully
