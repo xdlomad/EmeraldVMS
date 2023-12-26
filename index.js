@@ -10,7 +10,7 @@ const bcrypt = require('bcrypt');
 const saltRounds = 10;
 const qrCode_c = require('qrcode');
 const { MongoClient, ServerApiVersion } = require('mongodb');
-const uri = "mongodb+srv://xuhuan:xuhuan01234@cluster0.7krsk3h.mongodb.net/?retryWrites=true&w=majority";
+const uri = "mongodb+srv://b022110096:l8y6PQc3ylvAL1oe@firstdatabase.3xnid7z.mongodb.net";
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -46,74 +46,26 @@ const swaggerOptions = {
   definition: {
     openapi: '3.0.0', // Specify the OpenAPI version
     info: {
-      title: 'Visitor Management System Group 19',
+      title: 'Visitor Management System',
       version: '1.0.0',
       description: 'Visitor Management System using Swagger and Node.js',
     },
-    securityDefinitions: {
-      JWT: {
-        type: 'apiKey',
-        name: 'Authorization',
-        in: 'header',
+    components:{
+      securitySchemes: {
+        BearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerformat: 'JWT',
+        },
       },
     },
   },
-  apis: ['./index.js'], // Path to your route files
+  apis: ['./swagger.js'], // Path to your route files
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
 app.use('/VMS', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-
-/**
- * @swagger
- * components:
- *   securitySchemes:
- *     bearerAuth:
- *       type: http
- *       scheme: bearer
- *       bearerFormat: JWT
- */
-
-/**
- * @swagger
- * tags:
- *   - name: Alone Login
- *     description: To analyze the identity of user
- *   - name: User
- *     description: API operations related to user management
- *   - name: Visitor
- *     description: API operations related to visitor management
- *   - name: Visitor Log
- *     description: API operations related to visitor log management
- */
-
-/**
- * @swagger
- * /login:
- *   post:
- *     tags:
- *      - Alone Login
- *     summary: Perform user login
- *     description: Endpoint for user authentication
- *     requestBody:
- *      description: User login information
- *      required: true
- *      content:
- *        application/json:
- *         schema:
- *          type: object
- *          properties:
- *            user_id:
- *              type: string
- *            password:
- *              type: string
- *     responses:
- *       200:
- *         description: OK
- *       401:
- *         description: Unauthorized
- */
 
 //login POST request
 app.post('/login', async (req, res) => {
@@ -133,44 +85,10 @@ app.post('/login', async (req, res) => {
     }
   });
 
-/**
- * @swagger
- * /finduser:
- *   get:
- *     tags:
- *      - User
- *     summary: Find user information
- *     description: Retrieve user information based on the provided criteria.
- *     security:
- *       - BearerAuth: []  # Use the security scheme defined in your Swagger definition for authentication
- *     parameters:
- *       - in: query
- *         name: user_id
- *         schema:
- *           type: string
- *         description: The user_id of the user to find.
- *     responses:
- *       200:
- *         description: Successful response. User information retrieved.
- *         content:
- *           application/json:
- *             example:
- *               user_id: "example_user"
- *               name: "John Doe"
- *               email: "john@example.com"
- *       401:
- *         description: Unauthorized. Token not valid.
- *       403:
- *         description: Forbidden. User does not have access to finding users.
- *       404:
- *         description: User not found. The specified user_id does not exist.
- *       500:
- *         description: Internal Server Error. Something went wrong on the server.
- */
-
 //find user GET request
 app.get('/finduser', verifyToken, async (req, res)=>{
   let authorize = req.user.role //reading the token for authorisation
+  console.log(user);
   let data = req.body //requesting the data from body
   //checking the role of user
   if (authorize == "resident"|| authorize == "security"){
@@ -187,44 +105,6 @@ app.get('/finduser', verifyToken, async (req, res)=>{
       res.send(errorMessage() + "Token not valid!")
     }
   })
-
-/**
- * @swagger
- * /registeruser:
- *   post:
- *     tags:
- *      - User
- *     summary: Register a new user
- *     description: Register a new user with the provided information.
- *     security:
- *       - BearerAuth: []  # Use the security scheme defined in your Swagger definition for authentication
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           example:
- *             user_id: "new_user"
- *             password: "password123"
- *             name: "John Doe"
- *             unit: "Apartment A"
- *             hp_num: "+123456789"
- *             role: "admin"
- *     responses:
- *       200:
- *         description: Successful response. User registered successfully.
- *         content:
- *           application/json:
- *             example:
- *               message: "Registration request processed, new user is John Doe"
- *       400:
- *         description: Bad Request. User already exists.
- *       401:
- *         description: Unauthorized. Token not valid.
- *       403:
- *         description: Forbidden. User does not have access to registering users.
- *       500:
- *         description: Internal Server Error. Something went wrong on the server.
- */
 
 //register user post request
 app.post('/registeruser', verifyToken, async (req, res)=>{
@@ -246,44 +126,6 @@ app.post('/registeruser', verifyToken, async (req, res)=>{
     }
   })
 
-/**
- * @swagger
- * /updateuser:
- *   patch:
- *     tags:
- *      - User
- *     summary: Update user information
- *     description: Update user information based on the provided data.
- *     security:
- *       - BearerAuth: []  # Use the security scheme defined in your Swagger definition for authentication
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           example:
- *             user_id: "existing_user"
- *             password: "new_password"
- *             name: "Updated Name"
- *             unit: "Updated Unit"
- *             hp_num: "+987654321"
- *             role: "admin"
- *     responses:
- *       200:
- *         description: Successful response. User information updated successfully.
- *         content:
- *           application/json:
- *             example:
- *               message: "User updated! Updated Name"
- *       400:
- *         description: Bad Request. User does not exist.
- *       401:
- *         description: Unauthorized. Token not valid.
- *       403:
- *         description: Forbidden. User does not have access to update user information.
- *       500:
- *         description: Internal Server Error. Something went wrong on the server.
- */
-
 //update user PATCH request
 app.patch('/updateuser', verifyToken, async (req, res)=>{
   let authorize = req.user.role //reading the token for authorisation
@@ -303,38 +145,6 @@ app.patch('/updateuser', verifyToken, async (req, res)=>{
     }
 })
 
-/**
- * @swagger
- * /deleteuser:
- *   delete:
- *     tags:
- *      - User
- *     summary: Delete a user
- *     description: Delete a user based on the provided user_id.
- *     security:
- *       - BearerAuth: []  # Use the security scheme defined in your Swagger definition for authentication
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           example:
- *             user_id: "user_to_delete"
- *     responses:
- *       200:
- *         description: Successful response. User deleted successfully.
- *         content:
- *           application/json:
- *             example:
- *               message: "User deleted user_to_delete"
- *       400:
- *         description: Bad Request. Cannot find the user to delete.
- *       401:
- *         description: Unauthorized. Token not valid.
- *       403:
- *         description: Forbidden. User does not have access to delete users.
- *       500:
- *         description: Internal Server Error. Something went wrong on the server.
- */
 
 //delete user DELETE request
 app.delete('/deleteuser', verifyToken, async (req, res)=>{
@@ -357,45 +167,6 @@ app.delete('/deleteuser', verifyToken, async (req, res)=>{
   }
 )
 
-/**
- * @swagger
- * /registervisitor:
- *   post:
- *     tags:
- *      - Visitor
- *     summary: Register a new visitor
- *     description: Register a new visitor based on the provided data.
- *     security:
- *       - BearerAuth: []  # Use the security scheme defined in your Swagger definition for authentication
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           example:
- *             ref: "visitor_reference_number"
- *             name: "Visitor Name"
- *             IC_num: "IC123456"
- *             car_num: "ABC123"
- *             hp_num: "+987654321"
- *             pass: true
- *             category: "Guest"
- *             date: "2023-12-31"
- *             unit: "A101"
- *     responses:
- *       200:
- *         description: Successful response. Visitor registered successfully.
- *         content:
- *           application/json:
- *             example:
- *               message: "Registration request processed, visitor is Visitor Name"
- *       400:
- *         description: Bad Request. Visitor with the provided reference number already exists.
- *       401:
- *         description: Unauthorized. Token not valid.
- *       500:
- *         description: Internal Server Error. Something went wrong on the server.
- */
-
 //register visitor POST request
 app.post('/registervisitor', verifyToken, async (req, res)=>{
   let authorize = req.user.role
@@ -415,93 +186,6 @@ app.post('/registervisitor', verifyToken, async (req, res)=>{
   }
 )
 
-/**
- * @swagger
- * /findvisitor:
- *   get:
- *     tags:
- *      - Visitor
- *     summary: Find visitors based on criteria
- *     description: Retrieve a list of visitors based on the provided criteria. Only residents can find their own visitors.
- *     security:
- *       - BearerAuth: []  # Use the security scheme defined in your Swagger definition for authentication
- *     parameters:
- *       - in: query
- *         name: ref
- *         description: Reference number of the visitor
- *         schema:
- *           type: string
- *       - in: query
- *         name: name
- *         description: Name of the visitor
- *         schema:
- *           type: string
- *       - in: query
- *         name: IC_num
- *         description: IC number of the visitor
- *         schema:
- *           type: string
- *       - in: query
- *         name: car_num
- *         description: Car number of the visitor
- *         schema:
- *           type: string
- *       - in: query
- *         name: hp_num
- *         description: Phone number of the visitor
- *         schema:
- *           type: string
- *       - in: query
- *         name: pass
- *         description: Whether the visitor has a pass (true/false)
- *         schema:
- *           type: boolean
- *       - in: query
- *         name: category
- *         description: Category of the visitor (e.g., Guest, Contractor)
- *         schema:
- *           type: string
- *       - in: query
- *         name: date
- *         description: Visit date of the visitor 
- *         schema:
- *           type: string
- *           format: date
- *       - in: query
- *         name: unit
- *         description: Unit of the visitor
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Successful response. List of visitors matching the criteria.
- *         content:
- *           application/json:
- *             example:
- *               - ref_num: "visitor_reference_number"
- *                 name: "Visitor Name"
- *                 IC_num: "IC123456"
- *                 car_num: "ABC123"
- *                 hp_num: "+987654321"
- *                 pass: true
- *                 category: "Guest"
- *                 visit_date: "2023-12-31"
- *                 unit: "A101"
- *               - ref_num: "another_reference_number"
- *                 name: "Another Visitor"
- *                 IC_num: "IC789012"
- *                 car_num: "XYZ789"
- *                 hp_num: "+123456789"
- *                 pass: false
- *                 category: "Contractor"
- *                 visit_date: "2023-12-30"
- *                 unit: "B202"
- *       401:
- *         description: Unauthorized. Token not valid.
- *       500:
- *         description: Internal Server Error. Something went wrong on the server.
- */
-
 //find visitor GET request
 app.get('/findvisitor', verifyToken, async (req, res)=>{
   let authorize = req.user//reading the token for authorisation
@@ -515,81 +199,6 @@ app.get('/findvisitor', verifyToken, async (req, res)=>{
   }
   })
 
-/**
- * @swagger
- * /updatevisitor:
- *   patch:
- *     tags:
- *      - Visitor
- *     summary: Update visitor information
- *     description: Update information of a visitor. Only residents and security can update their own visitors, while admin can update any visitor.
- *     security:
- *       - BearerAuth: []  # Use the security scheme defined in your Swagger definition for authentication
- *     parameters:
- *       - in: body
- *         name: Visitor Update Information
- *         description: JSON object containing the visitor information to be updated
- *         required: true
- *         schema:
- *           type: object
- *           properties:
- *             ref_num:
- *               type: string
- *               description: Reference number of the visitor to be updated
- *               example: visitor_reference_number
- *             name:
- *               type: string
- *               description: Updated name of the visitor
- *               example: Updated Visitor Name
- *             IC_num:
- *               type: string
- *               description: Updated IC number of the visitor
- *               example: IC654321
- *             car_num:
- *               type: string
- *               description: Updated car number of the visitor
- *               example: XYZ789
- *             hp_num:
- *               type: string
- *               description: Updated phone number of the visitor
- *               example: +987654321
- *             pass:
- *               type: boolean
- *               description: Updated pass status of the visitor
- *               example: true
- *             category:
- *               type: string
- *               description: Updated category of the visitor (e.g., Guest, Contractor)
- *               example: Contractor
- *             visit_date:
- *               type: string
- *               format: date
- *               description: Updated visit date of the visitor 
- *               example: 2023-12-31
- *             unit:
- *               type: string
- *               description: Updated unit of the visitor
- *               example: B303
- *     responses:
- *       200:
- *         description: Successful response. Visitor information updated.
- *         content:
- *           application/json:
- *             example:
- *               ref_num: "visitor_reference_number"
- *               name: "Updated Visitor Name"
- *               IC_num: "IC654321"
- *               car_num: "XYZ789"
- *               hp_num: "+987654321"
- *               pass: true
- *               category: "Contractor"
- *               visit_date: "2023-12-31"
- *               unit: "B303"
- *       401:
- *         description: Unauthorized. Token not valid.
- *       500:
- *         description: Internal Server Error. Something went wrong on the server.
- */
 
 //update visitor PATCH request
 app.patch('/updatevisitor', verifyToken, async (req, res)=>{
@@ -608,40 +217,6 @@ app.patch('/updatevisitor', verifyToken, async (req, res)=>{
     }
 })
 
-/**
- * @swagger
- * /deletevisitor:
- *   delete:
- *     tags:
- *       - Visitor
- *     summary: Delete a visitor
- *     description: Delete a visitor based on the reference number. Only residents and security can delete their own visitors, while admin can delete any visitor.
- *     security:
- *       - BearerAuth: []  # Use the security scheme defined in your Swagger definition for authentication
- *     parameters:
- *       - in: body
- *         name: Visitor Deletion Information
- *         description: JSON object containing the reference number of the visitor to be deleted
- *         required: true
- *         schema:
- *           type: object
- *           properties:
- *             ref_num:
- *               type: string
- *               description: Reference number of the visitor to be deleted
- *               example: visitor_reference_number
- *     responses:
- *       200:
- *         description: Successful response. Visitor deleted.
- *         content:
- *           application/json:
- *             example:
- *               message: "The visitor under reference number of visitor_reference_number has been deleted :D!"
- *       401:
- *         description: Unauthorized. Token not valid.
- *       500:
- *         description: Internal Server Error. Something went wrong on the server.
- */
 
 //delete visitor DELETE request
 app.delete('/deletevisitor', verifyToken, async (req, res)=>{
@@ -661,55 +236,6 @@ app.delete('/deletevisitor', verifyToken, async (req, res)=>{
   }
 )
 
-/**
- * @swagger
- * /createQRvisitor:
- *   get:
- *     tags:
- *       - Visitor
- *     summary: Create QR code for visitor
- *     description: |
- *       Create a QR code for a visitor based on their IC number.
- *       The QR code contains visitor information such as reference number, name, category, and contact number.
- *     parameters:
- *       - in: body
- *         name: Visitor Information
- *         description: Visitor information for creating QR code
- *         schema:
- *           type: object
- *           properties:
- *             IC_num:
- *               type: string
- *               description: IC number of the visitor
- *     responses:
- *       200:
- *         description: QR code created successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   description: Success message
- *                 qrCodeUrl:
- *                   type: string
- *                   format: uri
- *                   description: URL to the generated QR code
- *       400:
- *         description: Invalid request or visitor not found
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   description: Error message
- *     security:
- *       - bearerAuth: []
- */
-
 //create a qr code for visitor
 app.get('/createQRvisitor', verifyToken, async (req, res)=>{
   let data = req.body
@@ -727,57 +253,6 @@ app.get('/createQRvisitor', verifyToken, async (req, res)=>{
     }
   }
 )
-
-/**
- * @swagger
- * /checkIn:
- *   post:
- *     tags:
- *       - Visitor Log
- *     summary: Create a visitor log
- *     description: |
- *       Create a visitor log for check-in. Only security and admin roles are allowed to create logs.
- *     requestBody:
- *       description: Visitor log information for check-in
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               log_id:
- *                 type: string
- *                 description: Unique log ID
- *               ref:
- *                 type: string
- *                 description: Reference number of the visitor
- *     responses:
- *       200:
- *         description: Visitor log created successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   description: Success message
- *                 logData:
- *                   type: object
- *                   description: Created visitor log data
- *       400:
- *         description: Invalid request or duplicate log ID
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   description: Error message
- *     security:
- *       - bearerAuth: []
- */
 
 //create a visitor log
 app.post('/checkIn', verifyToken, async (req, res,err)=>{
@@ -799,67 +274,6 @@ app.post('/checkIn', verifyToken, async (req, res,err)=>{
     }
   })
 
-/**
- * @swagger
- * /findvisitorlog:
- *   get:
- *     tags:
- *       - Visitor Log
- *     summary: Find visitor logs
- *     description: |
- *       Find visitor logs based on specified criteria. Only security and admin roles are allowed to find logs.
- *     parameters:
- *       - in: query
- *         name: log_id
- *         schema:
- *           type: string
- *         description: Optional. Log ID to filter logs.
- *       - in: query
- *         name: ref_num
- *         schema:
- *           type: string
- *         description: Optional. Reference number of the visitor to filter logs.
- *     responses:
- *       200:
- *         description: Visitor logs found successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   log_id:
- *                     type: string
- *                     description: Unique log ID
- *                   ref_num:
- *                     type: string
- *                     description: Reference number of the visitor
- *                   CheckIn_Time:
- *                     type: string
- *                     format: date-time
- *                     description: Check-in time
- *                   CheckOut_Time:
- *                     type: string
- *                     format: date-time
- *                     description: Check-out time
- *                   user_id:
- *                     type: string
- *                     description: User ID associated with the log
- *       400:
- *         description: Invalid request or insufficient permissions
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   description: Error message
- *     security:
- *       - bearerAuth: []
- */
-
 //find visitor log
 app.get('/findvisitorlog', verifyToken, async (req, res)=>{
     let authorize = req.user.role //reading the token for authorisation
@@ -874,44 +288,6 @@ app.get('/findvisitorlog', verifyToken, async (req, res)=>{
     }
   }
   )
-
-/**
- * @swagger
- * /checkOut:
- *   patch:
- *     tags:
- *       - Visitor Log
- *     summary: Update a visitor log to checkout visitor
- *     description: |
- *       Update the specified visitor log to mark the visitor as checked out. Only security and admin roles are allowed to update logs.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               log_id:
- *                 type: string
- *                 description: Log ID of the visitor log to update
- *             required:
- *               - log_id
- *     responses:
- *       200:
- *         description: Visitor log updated successfully
- *       400:
- *         description: Invalid request or insufficient permissions
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   description: Error message
- *     security:
- *       - bearerAuth: []
- */
 
 //update a visitor log to checkout visitor
 app.patch('/checkOut', verifyToken, async (req, res)=>{
@@ -1122,6 +498,11 @@ function generateToken(loginProfile){
 
 //verify generated tokens
 function verifyToken(req, res, next){
+  if (!req.headers.authorization)
+  {
+    res.send(errorMessage() + "Token is not found D:")
+    return
+  }
   let header = req.headers.authorization
   let token = header.split(' ')[1] //checking header
   jwt.verify(token,'UltimateSuperMegaTitanicBombasticGreatestBestPOGMadSuperiorTheOneandOnlySensationalSecretPassword',function(err,decoded){
