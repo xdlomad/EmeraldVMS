@@ -34,7 +34,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 app.get('/', (req, res) => {
-   res.send('Hello World!')
+   res.redirect('/VMS')
 })
 
 app.listen(port, () => {
@@ -63,7 +63,7 @@ const swaggerOptions = {
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use('/VMS', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 /**
  * @swagger
