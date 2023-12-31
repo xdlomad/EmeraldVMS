@@ -10,7 +10,7 @@ const bcrypt = require('bcrypt');
 const saltRounds = 10;
 const qrCode_c = require('qrcode');
 const { MongoClient, ServerApiVersion } = require('mongodb');
-const uri = process.env.mongo0bongo;
+const uri = process.env.mongo0bongo ;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -545,7 +545,7 @@ function currentTime(){
 
 //generate token for login authentication
 function generateToken(loginProfile){
-  return jwt.sign(loginProfile, 'UltimateSuperMegaTitanicBombasticGreatestBestPOGMadSuperiorTheOneandOnlySensationalSecretPassword', { expiresIn: '1h' });
+  return jwt.sign(loginProfile, process.env.bigSecret, { expiresIn: '1h' });
 }
 
 //verify generated tokens
@@ -556,8 +556,8 @@ function verifyToken(req, res, next){
     return
   }
   let header = req.headers.authorization
-  let token = header.split(' ')[1] //checking header
-  jwt.verify(token,'UltimateSuperMegaTitanicBombasticGreatestBestPOGMadSuperiorTheOneandOnlySensationalSecretPassword',function(err,decoded){
+  let token = header.split(' ')[1] //checking header //process.env.fuckyou
+  jwt.verify(token,process.env.bigSecret,function(err,decoded){
     if(err) {
       res.status(401).send(errorMessage() + "Token is not valid D:, go to the counter to exchange (joke)")
       return
