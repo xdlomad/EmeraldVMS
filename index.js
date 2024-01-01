@@ -20,8 +20,8 @@ const limiter = rateLimit({
 	legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 })
 
-const uri = process.env.mongobongo2 ;
-const credentials = process.env.mongocert;
+const uri = process.env.mongo0bongo ;
+//const credentials = process.env.mongocert;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -30,7 +30,7 @@ const client = new MongoClient(uri, {
       strict: true,
       deprecationErrors: true, 
     },
-    tlsCertificateKeyFile: credentials
+    //tlsCertificateKeyFile: credentials
   });
 
   
