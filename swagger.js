@@ -34,7 +34,7 @@
  *     responses:
  *       200:
  *         description: User logged in successfully
- *       201:
+ *       400:
  *         description: User logged in failure
  */
 
@@ -60,7 +60,7 @@
  *       200:
  *         description: Successful response. Please wait for admin to approve registration.
  *       400:
- *         description: Bad Request. User already exists.
+ *         description: Registration failure. User already exists.
  *       401:
  *         description: Unauthorized. Token not valid.
  *       403:
@@ -88,7 +88,7 @@
  *             unit: "Apartment A"
  *             hp_num: "+123456789"
  *     responses:
- *       200:W
+ *       200:
  *         description: Successful response.
  *       400:
  *         description: Bad Request. User already exists.
@@ -107,7 +107,7 @@
  *     tags:
  *      - Manage Users
  *     summary: Find user information
- *     description: Retrieve user information based on the provided criteria.
+ *     description: Retrieve user information based on the provided criteria. Leave the space blank,if a list of users is needed
  *     security:
  *       - BearerAuth: [] 
  *     parameters:

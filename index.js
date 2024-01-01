@@ -9,8 +9,19 @@ const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
 const qrCode_c = require('qrcode');
+const { rateLimit } = require('express-rate-limit')
 const { MongoClient, ServerApiVersion } = require('mongodb');
-const uri = process.env.mongo0bongo  ;
+
+const limiter = rateLimit({
+	windowMs: 1 * 60 * 1000, // 15 minutes
+	max: 5, // Limit each IP to 100 requests per `window` (here, per 15 minutes)
+	message : "Too many requests from this IP, please try again after 5 minutes",
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+	legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+})
+
+const uri = process.env.mongobongo2 ;
+const credentials = process.env.mongocert
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -18,8 +29,11 @@ const client = new MongoClient(uri, {
       version: ServerApiVersion.v1,
       strict: true,
       deprecationErrors: true, 
-    }
+    },
+    tlsCertificateKeyFile: credentials
   });
+
+  
 
 //start of port
 client.connect() 
@@ -68,7 +82,7 @@ const swaggerSpec = swaggerJsdoc(swaggerOptions);
 app.use('/VMS', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 //login POST request
-app.post('/login', async (req, res) => {
+app.post('/login',limiter, async (req, res) => {
     let data = req.body
     let result = await login(data);
     const loginuser = result.verify
@@ -78,7 +92,7 @@ app.post('/login', async (req, res) => {
       res.status(200).send(loginuser.user_id + " has logged in!\nWelcome "+ loginuser.name + "!\nYour token : " + token)
     }else {
       //else send the failure message
-      res.status(201).send(errorMessage() + result)
+      res.status(400).send(errorMessage() + result)
     }
   });
 
@@ -98,7 +112,7 @@ app.get('/finduser/:name', verifyToken, async (req, res)=>{
     }
   //token does not exist
   }else {
-      res.status(403).send(errorMessage() + "Token not valid!")
+      res.status(401).send(errorMessage() + "Token not valid!")
     }
   })
 
@@ -118,7 +132,7 @@ app.post('/registeruser', verifyToken, async (req, res)=>{
     }
   //token does not exist
   }else {
-      res.status(403).send(errorMessage() + "Token not valid!")
+      res.status(401).send(errorMessage() + "Token not valid!")
     }
   })
 
@@ -172,7 +186,7 @@ app.patch('/updateuser', verifyToken, async (req, res)=>{
   let data = req.body //requesting the data from body
   //checking the role of user
   if (authorize == "security" || authorize == "resident"){
-    res.send("you do not have access to update user information!")
+    res.status(404).send("you do not have access to update user information!")
   }else if (authorize == "admin" ){
     const result = await updateUser(data)
     if (result){ // checking if the user exist and updated
@@ -181,7 +195,7 @@ app.patch('/updateuser', verifyToken, async (req, res)=>{
       res.status(400).send(errorMessage() + "User does not exist!")
     }
   }else {
-      res.status(403).send(errorMessage() + "Invalid permissions")
+      res.status(401).send(errorMessage() + "Token not valid")
     }
 })
 
