@@ -71,6 +71,37 @@
 
 /**
  * @swagger
+ * /test/registerResident:
+ *   post:
+ *     tags:
+ *      - Login
+ *     summary: New Resident registering
+ *     description: this work as normal as register resident but for testing purposes and does not require admin approval
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           example:
+ *             user_id: "new_user"
+ *             password: "password123"
+ *             name: "John Doe"
+ *             unit: "Apartment A"
+ *             hp_num: "+123456789"
+ *     responses:
+ *       200:W
+ *         description: Successful response.
+ *       400:
+ *         description: Bad Request. User already exists.
+ *       401:
+ *         description: Unauthorized. Token not valid.
+ *       403:
+ *         description: Forbidden. User does not have access to registering users.
+ *       500:
+ *         description: Internal Server Error. Something went wrong on the server.
+ */
+
+/**
+ * @swagger
  * /finduser/{name}:
  *   get:
  *     tags:
@@ -238,13 +269,12 @@
  *     tags:
  *      - Manage Visitors
  *     summary: Find visitors based on criteria
- *     description: Retrieve a list of visitors based on the provided criteria. Only residents can find their own visitors.
+ *     description: Retrieve a list of visitors based on the provided criteria. Only residents can find their own visitors. Leave the space blank,if a list of visitors is needed
  *     security:
  *       - BearerAuth: []  # Use the security scheme defined in your Swagger definition for authentication
  *     parameters:
  *      - in: path
  *        name: ref_num
- *        required: true
  *        type: string
  *        description: The ref_num.
  *     responses:
@@ -254,8 +284,6 @@
  *         description: Visitor not found.
  *       401:
  *         description: Unauthorized. Token not valid.
- *       500:
- *         description: Internal Server Error. Something went wrong on the server.
  */
 
 
@@ -427,7 +455,7 @@
 
 /**
  * @swagger
- * /createQRvisitor/{IC_num}:
+ * /visitorPass/{IC_num}:
  *   get:
  *     tags:
  *       - Manage Visitors

@@ -10,7 +10,7 @@ const bcrypt = require('bcrypt');
 const saltRounds = 10;
 const qrCode_c = require('qrcode');
 const { MongoClient, ServerApiVersion } = require('mongodb');
-const uri = process.env.mongo0bongo ;
+const uri = process.env.mongo0bongo  ;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -123,6 +123,19 @@ app.post('/registeruser', verifyToken, async (req, res)=>{
   })
 
 //register user post request
+app.post('/test/registerResident', async (req, res)=>{
+    let data = req.body //requesting the data from body
+  //checking the role of user
+    const newUser = await registerResident(data)
+    if (newUser){ //checking is registration is succesful
+      res.status(200).send("Registration request processed, please wait for admin approval " + newUser.name)
+    }else{
+      res.status(400).send(errorMessage() + "Approval Pending or User already exist")
+    }
+  //token does not exist
+  })
+
+//register user post request
 app.post('/registerResident', async (req, res)=>{
   let data = req.body //requesting the data from body
   //checking the role of user
@@ -218,6 +231,7 @@ app.get('/findvisitor/:ref_num', verifyToken, async (req, res)=>{
   let authorize = req.user//reading the token for authorisation
   let data = req.params.ref_num //requesting the data from body
   //checking the role of user
+  console.log(data);
   if (authorize.role){
     const result = await findVisitor(data,authorize) //find visitor
     res.status(200).send(result)
@@ -265,14 +279,13 @@ app.delete('/deletevisitor', verifyToken, async (req, res)=>{
 )
 
 //create a qr code for visitor
-app.get('/createQRvisitor/:IC_num', verifyToken, async (req, res)=>{
+app.get('/visitorPass/:IC_num', verifyToken, async (req, res)=>{
   let data = req.params.IC_num
   let authorize = req.user
-  console.log(data);
   if (authorize.role){ //checking if token is valid
   const uri = await qrCreate(data) //create qr code
     if (uri){
-      res.status(200).send("QR code created for visitor! Paste the link below into a browser :D\n"+ uri)
+      res.status(200).send("QR code created for visitor! Download your visitor pass now :D\n"+ uri)
     }else{
       res.status(404).send(errorMessage() + "No such visitor found")
     }
@@ -355,7 +368,11 @@ async function login(data) {
 
 async function findUser(newdata) {
   //verify if there is duplicate username in databse
-  const match = await user.find({name : newdata},{projection: {password: 0, _id : 0}}).next()
+  if (newdata == ","){
+    match = await user.find({}, {projection: {password: 0, _id : 0}}).toArray()
+  }else{
+    match = await user.find({name : newdata},{projection: {password: 0, _id : 0}}).next()
+  }
   return (match)
 }
 
@@ -400,7 +417,6 @@ async function registerResident(newdata) {
         "unit": newdata.unit,
         "hp_num" : newdata.hp_num,
         "role" : "resident"
-        
       })
   const newUser=await pending.find({user_id : newdata.user_id}).next()
   return (newUser)
@@ -450,10 +466,17 @@ async function registerVisitor(newdata, currentUser) {
 
 async function findVisitor(newdata, currentUser){
   if (currentUser.role == "resident"){
-    filter=Object.assign(newdata, {"user_id" : currentUser.user_id}) // only allow resident to find their own visitors
-    match = await visitor.find(filter, {projection: {_id :0}}).next()
+    if (newdata == ","){ // only allow resident to find their own visitors
+     match = await visitor.find({}, {"user_id" : currentUser.user_id}, {projection: {_id :0}}).toArray()
+    }else{
+      match = await visitor.find({"ref_num" : newdata}, {"user_id" : currentUser.user_id}, {projection: {_id :0}}).toArray()
+    }
   }else if (currentUser.role == "security" || currentUser.role == "admin"){ // allow security and admin to find all visitors
+    if (newdata == ","){
+    match = await visitor.find({}, {projection: {_id :0}}).toArray()
+    }else{
     match = await visitor.find({"ref_num":newdata}).next()
+    }
   }
   if (match != 0){ //check if there is any visitor
     return (match)
@@ -517,11 +540,16 @@ async function updateLog(newdata) {
 
 //function to create qrcode file
 async function qrCreate(data){
-  visitorData = await visitor.find({"IC_num" : data}, {projection : {"ref_num" : 1 , "name" : 1 , "category" : 1 , "hp" : 1, "_id" : 0}}).next() //find visitor data
+  visitorData = await visitor.find({"IC_num" : data}, {projection : {"ref_num" : 1 , "name" : 1 , "category" : 1 , "user_id" : 1, _id : 0}}).next() //find visitor data
   if(visitorData){ //check if visitor exist
+    userData = await user.find({"user_id" : visitorData.user_id}, {projection : {"hp_num" : 1 , "unit" : 1 , "_id" : 0}}).next() //find user data
+    //add both hp_num and unit into visitor data
+    visitorData["user_unit"] = userData.unit
+    visitorData["user_hp"] = userData.hp_num //add user data into visitor data
     let stringdata = JSON.stringify(visitorData)
-    const base64 = await qrCode_c.toDataURL(stringdata) //convert to qr code to data url
-    return (base64)
+    const canvas = await qrCode_c.toString(stringdata) //convert to qr code to an image
+    //const base64 = await qrCode_c.toDataURL(stringdata) //convert to qr code to data url
+    return (canvas)
   }else{
     return
   }
@@ -545,7 +573,7 @@ function currentTime(){
 
 //generate token for login authentication
 function generateToken(loginProfile){
-  return jwt.sign(loginProfile, process.env.bigSecret, { expiresIn: '1h' });
+  return jwt.sign(loginProfile, process.env.bigSecret , { expiresIn: '1h' });
 }
 
 //verify generated tokens
