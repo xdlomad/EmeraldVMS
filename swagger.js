@@ -321,8 +321,8 @@
  *              type: string
  *              example: "012-61942211"
  *            pass:
- *              type: string
- *              example: "DELIVERY_0A"
+ *              type: boolean
+ *              example: false
  *            category:
  *              type: string
  *              example: "DELIVERY"
@@ -455,10 +455,44 @@
 
 /**
  * @swagger
- * /visitorPass/{IC_num}:
- *   get:
+ * /createPass/{ref_num}:
+ *   patch:
  *     tags:
  *       - Manage Visitors
+ *     security:
+ *       - BearerAuth: [] 
+ *     summary: Issue visitor pass 
+ *     description: |
+ *       Issue visitor pass to visitor based on their reference number.
+ *     parameters:
+ *      - in: path
+ *        name: ref_num
+ *        required: true
+ *        type: string
+ *        description: reference number of the visitor
+ *     responses:
+ *       200:
+ *         description: visitor allow to retrieve pass
+ *       400:
+ *         description: Invalid request or visitor not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   description: Error message
+ */
+
+
+
+/**
+ * @swagger
+ * /retrievePass/{IC_num}:
+ *   get:
+ *     tags:
+ *       - Visitors
  *     security:
  *       - BearerAuth: [] 
  *     summary: Create QR code for visitor
@@ -497,7 +531,6 @@
  *                   type: string
  *                   description: Error message
  */
-
 
 
 /**

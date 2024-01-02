@@ -21,7 +21,7 @@ const limiter = rateLimit({
 })
 
 const uri = process.env.mongo0bongo ;
-//const credentials = process.env.mongocert;
+const credentials = process.env.mongocert;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -45,7 +45,7 @@ const visitorLog = client.db("EmeraldVMS").collection("visitor_log")
 const pending = client.db("EmeraldVMS").collection("Pending_users")
 //app.use(express.json())
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.urlencoded({ extended: true }) );
 
 app.get('/', (req, res) => {
    res.redirect('/VMS')
@@ -85,11 +85,23 @@ app.use('/VMS', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.post('/login',limiter, async (req, res) => {
     let data = req.body
     let result = await login(data);
-    const loginuser = result.verify
-    const token = result.token
+    const loginuser = result.verify;
+    const token = result.token;
+    let  j = result.hosts.length;
+    const hosts = result.hosts;
     //check the returned result if its a object, only then can we welcome the user
     if (typeof loginuser == "object") { 
-      res.status(200).send(loginuser.user_id + " has logged in!\nWelcome "+ loginuser.name + "!\nYour token : " + token)
+      if (loginuser.role == "admin"){
+        res.writeHead(200, {'Content-Type': 'text/plain'}); 
+        res.write(loginuser.user_id + " has logged in!\nWelcome "+ loginuser.name + 
+        "!\nYour token : " + token +"\n\nList of hosts : \n"  )
+        for (i=0; i<j; i++){
+        res.write(JSON.stringify(hosts[i]) + "\n-----------------------------------\n" );
+        }
+        res.end("\n\nPlease proceed to the admin page to view the list of hosts")
+      }else{
+      res.status(200).send(loginuser.user_id + " has logged in!\nWelcome "+ loginuser.name +"!\nYour token : " + token)
+      }
     }else {
       //else send the failure message
       res.status(400).send(errorMessage() + result)
@@ -150,8 +162,11 @@ app.post('/test/registerResident', async (req, res)=>{
   })
 
 //register user post request
-app.post('/registerResident', async (req, res)=>{
+app.post('/registerResident', async (req, res, err) =>{
   let data = req.body //requesting the data from body
+  if (err){
+    res.send("fuck off")
+  }
   //checking the role of user
     const newUser = await registerResident(data)
     if (newUser){ //checking is registration is succesful
@@ -227,10 +242,11 @@ app.post('/registervisitor', verifyToken, async (req, res)=>{
   let loginUser = req.user.user_id
   let data = req.body
   //checking if token is valid
+  console.log(data);
   if(authorize){
   const visitorData = await registerVisitor(data, loginUser) //register visitor
     if (visitorData){
-      re.status(200).send("Registration request processed, visitor is " + visitorData.name)
+      res.status(200).send("Registration request processed, visitor is " + visitorData.name)
     }else{
       res.status(400).send(errorMessage() + "Visitor already exists! Add a visit log instead!")
     }
@@ -292,19 +308,32 @@ app.delete('/deletevisitor', verifyToken, async (req, res)=>{
   }
 )
 
+
 //create a qr code for visitor
-app.get('/visitorPass/:IC_num', verifyToken, async (req, res)=>{
-  let data = req.params.IC_num
+app.patch('/createPass/:ref_num', verifyToken, async (req, res)=>{
+  let data = req.params.ref_num
   let authorize = req.user
   if (authorize.role){ //checking if token is valid
-  const uri = await qrCreate(data) //create qr code
-    if (uri){
-      res.status(200).send("QR code created for visitor! Download your visitor pass now :D\n"+ uri)
+  const success = await approvePass(data, authorize) //create qr code
+    if (success){
+      res.status(200).send("visitor is approved for a pass\n"+ success.ref_num)
     }else{
       res.status(404).send(errorMessage() + "No such visitor found")
     }
   }else {
       res.status(401).send(errorMessage() + "Not a valid token!")
+    }
+  }
+)
+
+//create a qr code for visitor
+app.get('/retrievePass/:IC_num', async (req, res)=>{
+  let data = req.params.IC_num
+  const uri = await qrCreate(data) //create qr code
+    if (uri){
+      res.status(200).send("Download your visitor pass now :D\n"+ uri)
+    }else{
+      res.status(404).send(errorMessage() + "No such visitor found")
     }
   }
 )
@@ -372,6 +401,11 @@ async function login(data) {
     const correctPassword = await bcrypt.compare(data.password,verify.password);
     if (correctPassword){
       token = generateToken(verify)
+      if (verify.role == "admin"){
+        console.log("Admin has logged in!")
+        hosts = await user.find({}, {projection: {_id :0}}).toArray();
+        return{verify,token,hosts};
+      }
       return{verify,token};
     }else{
       return ("Wrong password D: Forgotten your password?")
@@ -457,20 +491,20 @@ async function deleteUser(data) {
 
 async function registerVisitor(newdata, currentUser) {
   //verify if there is duplciate ref_num
-  const match = await visitor.find({"ref_num": newdata.ref}).next()
+  const match = await visitor.find({"ref_num": newdata.ref_num}).next()
     if (match) {
       return 
     } else {
       // add info into database
       await visitor.insertOne({
-        "ref_num" : newdata.ref,
+        "ref_num" : newdata.ref_num,
         "name": newdata.name,
         "IC_num": newdata.IC_num,
         "car_num": newdata.car_num,
         "hp" : newdata.hp_num,
         "pass": newdata.pass,
         "category" : newdata.category,
-        "visit_date" : newdata.date,
+        "visit_date" : newdata.visit_date,
         "unit" : newdata.unit,
         "user_id" : currentUser
       })
@@ -550,6 +584,20 @@ async function updateLog(newdata) {
     } else {
         return (newLog)
     }  
+}
+
+//function to create qrcode file
+async function approvePass(data, currentUser){
+  if (currentUser.role == "resident"|| currentUser.role == "security"){ //only allow resident and security to update their own visitors
+    result = await visitor.findOneAndUpdate({"ref_num": data, "user_id" : currentUser.user_id },{$set : {pass : true}}, {new:true})
+  }else if (currentUser.role == "admin"){
+    result = await visitor.findOneAndUpdate({"ref_num": data},{$set : {pass : true}}, {new:true}) //allow admin to update all visitors
+  }
+  if(result== null){ //check if visitor exist
+    return 
+  }else{
+    return (result)
+  }
 }
 
 //function to create qrcode file
