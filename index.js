@@ -20,7 +20,7 @@ const limiter = rateLimit({
 	legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 })
 
-const uri = process.env.mongo0bongo ;
+const uri = process.env.mongo0bongo;
 const credentials = process.env.mongocert;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -87,11 +87,11 @@ app.post('/login',limiter, async (req, res) => {
     let result = await login(data);
     const loginuser = result.verify;
     const token = result.token;
-    let  j = result.hosts.length;
-    const hosts = result.hosts;
     //check the returned result if its a object, only then can we welcome the user
     if (typeof loginuser == "object") { 
       if (loginuser.role == "admin"){
+        let  j = result.hosts.length;
+        const hosts = result.hosts;
         res.writeHead(200, {'Content-Type': 'text/plain'}); 
         res.write(loginuser.user_id + " has logged in!\nWelcome "+ loginuser.name + 
         "!\nYour token : " + token +"\n\nList of hosts : \n"  )
@@ -162,11 +162,8 @@ app.post('/test/registerResident', async (req, res)=>{
   })
 
 //register user post request
-app.post('/registerResident', async (req, res, err) =>{
+app.post('/registerResident', async (req, res) =>{
   let data = req.body //requesting the data from body
-  if (err){
-    res.send("fuck off")
-  }
   //checking the role of user
     const newUser = await registerResident(data)
     if (newUser){ //checking is registration is succesful
@@ -403,7 +400,7 @@ async function login(data) {
       token = generateToken(verify)
       if (verify.role == "admin"){
         console.log("Admin has logged in!")
-        hosts = await user.find({}, {projection: {_id :0}}).toArray();
+        hosts = await user.find({role : "resident"}, {projection: {_id :0  , password : 0}}).toArray();
         return{verify,token,hosts};
       }
       return{verify,token};
@@ -604,7 +601,7 @@ async function approvePass(data, currentUser){
 async function qrCreate(data){
   visitorData = await visitor.find({"IC_num" : data}, {projection : {"ref_num" : 1 , "name" : 1 , "category" : 1 , "user_id" : 1, _id : 0}}).next() //find visitor data
   if(visitorData){ //check if visitor exist
-    userData = await user.find({"user_id" : visitorData.user_id}, {projection : {"hp_num" : 1 , "unit" : 1 , "_id" : 0}}).next() //find user data
+    userData = await user.find({"user_id" : visitorData.user_id}, {projection : { "unit" : 1 , "_id" : 0}}).next() //find user data
     //add both hp_num and unit into visitor data
     visitorData["user_unit"] = userData.unit
     visitorData["user_hp"] = userData.hp_num //add user data into visitor data
@@ -647,7 +644,7 @@ function verifyToken(req, res, next){
   }
   let header = req.headers.authorization
   let token = header.split(' ')[1] //checking header //process.env.fuckyou
-  jwt.verify(token,process.env.bigSecret,function(err,decoded){
+  jwt.verify(token,process.env.big,function(err,decoded){
     if(err) {
       res.status(401).send(errorMessage() + "Token is not valid D:, go to the counter to exchange (joke)")
       return
