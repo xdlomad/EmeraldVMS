@@ -22,7 +22,7 @@ const limiter = rateLimit({
 	legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 })
 
-const uri = process.env.mongo0bongo  ;
+const uri = process.env.mongo0bongo ;
 const credentials = process.env.mongocert;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -339,9 +339,9 @@ app.post('/verifyPass', verifyToken, async (req, res)=>{
   let data = req.body
   let authorize = req.user
   if (authorize.role == "security" || authorize.role == "admin"){ //checking if token is valid
-  const success = await verifyPass(data, authorize) //create qr code
+  const [success, userHP] = await verifyPass(data, authorize) //create qr code
     if (success){
-      res.status(200).send("visitor is legit\n"+ success)
+      res.status(200).send("visitor is legit. Visitor Info:\n "+ JSON.stringify(success) + "\n\nHost's Phone number:\n" + userHP.hp_num)
     }else{
       res.status(404).send(errorMessage() + "No such visitor found")
     }
@@ -636,7 +636,8 @@ async function verifyPass(data, currentUser){
     for (i=0; i<verify.length; i++){
     const correct = await bcrypt.compare(verify[i].ref_num,data.ref_num);
     if (correct){
-      return (JSON.stringify(verify[i]))
+      let required = await user.find({"user_id": verify[i].user_id},{projection : { "_id": 0 }} ).next();
+      return [verify[i], required]
     }
   }
   }else {
@@ -677,7 +678,7 @@ function currentTime(){
 
 //generate token for login authentication
 function generateToken(loginProfile){
-  return jwt.sign(loginProfile, process.env.bigSecret , { expiresIn: '1h' });
+  return jwt.sign(loginProfile,process.env.bigSecret , { expiresIn: '1h' });
 }
 
 //verify generated tokens
