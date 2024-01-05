@@ -8,6 +8,7 @@ const port = process.env.PORT || 3000;
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 
+
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
 const qrCode_c = require('qrcode');
@@ -22,7 +23,7 @@ const limiter = rateLimit({
 	legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 })
 
-const uri = process.env.mongo0bongo ;
+const uri = process.env.mongo0bongo|| 'mongodb+srv://b022110096:uTMUyVBfbXuAXa0e@firstdatabase.3xnid7z.mongodb.net' ;
 const credentials = process.env.mongocert;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -49,14 +50,6 @@ const pending = client.db("EmeraldVMS").collection("Pending_users")
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }) );
 
-app.get('/', (req, res) => {
-   res.redirect('/VMS')
-})
-
-app.listen(port, () => {
-   console.log(`Example app listening on port ${port}`)
-})
-
 // Swagger setup
 const swaggerOptions = {
   definition: {
@@ -81,7 +74,7 @@ const swaggerOptions = {
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
-app.use('/VMS', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use('/test', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 //login POST request
 app.post('/login',limiter, async (req, res) => {
@@ -153,12 +146,12 @@ app.post('/registeruser', verifyToken, async (req, res)=>{
 //register user post request
 app.post('/test/registerResident', async (req, res)=>{
     let data = req.body //requesting the data from body
-    let test = "test"
-    const newUser = await registerResident(data,test)
+  //checking the role of user
+    const newUser = await registerResident(data)
     if (newUser){ //checking is registration is succesful
-      res.status(200).send("Test account approved" + newUser.name)
+      res.status(200).send("Registration request processed, please wait for admin approval " + newUser.name)
     }else{
-      res.status(400).send(errorMessage() + "User already exist")
+      res.status(400).send(errorMessage() + "Approval Pending or User already exist")
     }
   //token does not exist
   })
@@ -237,13 +230,15 @@ app.delete('/deleteuser', verifyToken, async (req, res)=>{
 
 //register visitor POST request
 app.post('/registervisitor', verifyToken, async (req, res)=>{
-  let authorize = req.user
+  let authorize = req.user.role
+  let loginUser = req.user.user_id
   let data = req.body
   //checking if token is valid
-  if(authorize.role){
-  const visitorData = await registerVisitor(data, authorize) //register visitor
+  console.log(data);
+  if(authorize){
+  const visitorData = await registerVisitor(data, loginUser) //register visitor
     if (visitorData){
-      res.status(200).send("Registration request processed, visitor is " + visitorData.name + "")
+      res.status(200).send("Registration request processed, visitor is " + visitorData.name)
     }else{
       res.status(400).send(errorMessage() + "Visitor already exists! Add a visit log instead!")
     }
@@ -258,6 +253,7 @@ app.get('/findvisitor/:ref_num', verifyToken, async (req, res)=>{
   let authorize = req.user//reading the token for authorisation
   let data = req.params.ref_num //requesting the data from body
   //checking the role of user
+  console.log(data);
   if (authorize.role){
     const result = await findVisitor(data,authorize) //find visitor
     res.status(200).send(result)
@@ -327,26 +323,9 @@ app.get('/retrievePass/:IC_num', async (req, res)=>{
   let data = req.params.IC_num
   const uri = await qrCreate(data) //create qr code
     if (uri){
-      res.status(200).send("Paste the uri in a new tab for your visitor pass now :D\n"+ uri)
-    }else{
-      res.status(404).send(errorMessage() + "No such visitor found or you have not been permitted for a pass")
-    }
-  }
-)
-
-//create a qr code for visitor
-app.post('/verifyPass', verifyToken, async (req, res)=>{
-  let data = req.body
-  let authorize = req.user
-  if (authorize.role == "security" || authorize.role == "admin"){ //checking if token is valid
-  const success = await verifyPass(data, authorize) //create qr code
-    if (success){
-      res.status(200).send("visitor is legit\n"+ success)
+      res.status(200).send("Download your visitor pass now :D\n"+ uri)
     }else{
       res.status(404).send(errorMessage() + "No such visitor found")
-    }
-  }else {
-      res.status(401).send(errorMessage() + "Not a valid token! or you do not have access to verify passes")
     }
   }
 )
@@ -458,7 +437,7 @@ async function registerUser(newdata) {
   return (newUser)
 }}
 
-async function registerResident(newdata,test) {
+async function registerResident(newdata) {
   //verify if there is duplicate username in databse
   const match = await pending.find({user_id : newdata.user_id}).next()
   const match2 = await user.find({user_id : newdata.user_id}).next()
@@ -466,27 +445,23 @@ async function registerResident(newdata,test) {
       return 
     } else {
       if (match2){
-        return  
+        return
       }else{
-        let hashed = await encryption(newdata.password)
-        let insert = {
-          "user_id": newdata.user_id,
-          "password": hashed,
-          "name": newdata.name,
-          "unit": newdata.unit,
-          "hp_num" : newdata.hp_num,
-          "role" : "resident" }
-        if (test == "test")
-        {
-          await user.insertOne(insert)
-        }else{
-        await pending.insertOne(insert)
-        }
-      }
+      //encrypt password by hashing
+      const hashed = await encryption(newdata.password)
+      // add info into database
+      await pending.insertOne({
+        "user_id": newdata.user_id,
+        "password": hashed,
+        "name": newdata.name,
+        "unit": newdata.unit,
+        "hp_num" : newdata.hp_num,
+        "role" : "resident"
+      })
   const newUser=await pending.find({user_id : newdata.user_id}).next()
   return (newUser)
-    }
 }
+}}
 
 async function updateUser(data) {
   if (data.password){
@@ -512,7 +487,6 @@ async function registerVisitor(newdata, currentUser) {
     if (match) {
       return 
     } else {
-      if (currentUser.role == "resident"){
       // add info into database
       await visitor.insertOne({
         "ref_num" : newdata.ref_num,
@@ -520,27 +494,12 @@ async function registerVisitor(newdata, currentUser) {
         "IC_num": newdata.IC_num,
         "car_num": newdata.car_num,
         "hp" : newdata.hp_num,
-        "pass": false,
-        "category" : newdata.category,
-        "visit_date" : newdata.visit_date,
-        "unit" : currentUser.unit,
-        "user_id" : currentUser.user_id
-      })
-    }else if (currentUser.role == "security" || currentUser.role == "admin"){
-      // add info into database
-      await visitor.insertOne({
-        "ref_num" : newdata.ref_num,
-        "name": newdata.name,
-        "IC_num": newdata.IC_num,
-        "car_num": newdata.car_num,
-        "hp" : newdata.hp_num,
-        "pass": false,
+        "pass": newdata.pass,
         "category" : newdata.category,
         "visit_date" : newdata.visit_date,
         "unit" : newdata.unit,
-        "user_id" : currentUser.user_id
+        "user_id" : currentUser
       })
-    }
           return (newdata)
     }  
 }
@@ -567,10 +526,9 @@ async function findVisitor(newdata, currentUser){
 }
 
 async function updateVisitor(data, currentUser) {
-  data["pass"] = false
-  if (currentUser.role == "resident"){ //only allow resident to update their own visitors
-    result = await visitor.findOneAndUpdate({"ref_num": data.ref_num, "user_id" : currentUser.user_id,},{$set : data}, {new:true})
-  }else if (currentUser.role == "admin"|| currentUser.role == "security"){
+  if (currentUser.role == "resident"|| currentUser.role == "security"){ //only allow resident and security to update their own visitors
+    result = await visitor.findOneAndUpdate({"ref_num": data.ref_num, "user_id" : currentUser.user_id },{$set : data}, {new:true})
+  }else if (currentUser.role == "admin"){
     result = await visitor.findOneAndUpdate({"ref_num": data.ref_num},{$set : data}, {new:true}) //allow admin to update all visitors
   }
   if(result== null){ //check if visitor exist
@@ -622,9 +580,9 @@ async function updateLog(newdata) {
 
 //function to create qrcode file
 async function approvePass(data, currentUser){
-  if (currentUser.role == "resident"){ 
-    result = await visitor.findOneAndUpdate({"ref_num": data, user_id : currentUser.user_id},{$set : {pass : true}}, {new:true})
-  }else if (currentUser.role == "admin"|| currentUser.role == "security"){
+  if (currentUser.role == "resident"|| currentUser.role == "security"){ //only allow resident and security to update their own visitors
+    result = await visitor.findOneAndUpdate({"ref_num": data, "user_id" : currentUser.user_id },{$set : {pass : true}}, {new:true})
+  }else if (currentUser.role == "admin"){
     result = await visitor.findOneAndUpdate({"ref_num": data},{$set : {pass : true}}, {new:true}) //allow admin to update all visitors
   }
   if(result== null){ //check if visitor exist
@@ -634,30 +592,17 @@ async function approvePass(data, currentUser){
   }
 }
 
-async function verifyPass(data, currentUser){
-  let verify = await visitor.find({"unit": data.unit},{projection : { "_id": 0 }} ).toArray();
-  if(verify){
-    for (i=0; i<verify.length; i++){
-    const correct = await bcrypt.compare(verify[i].ref_num,data.ref_num);
-    if (correct){
-      return (JSON.stringify(verify[i]))
-    }
-  }
-  }else {
-    return
-  }
-}
-
 //function to create qrcode file
 async function qrCreate(data){
-  visitorData = await visitor.find({"IC_num" : data}, {projection : {"ref_num" : 1, "unit" : 1 , "pass" : 1, "_id": 0 }}).next() //find visitor data
-  if(visitorData.pass == true){ //check if visitor exist
-    let hashed = await encryption(visitorData.ref_num)
-    let stringdata = {ref_num : hashed, unit : visitorData.unit}
-    stringdata = JSON.stringify(stringdata)
-    //const canvas = await qrCode_c.toString(stringdata) //convert to qr code to an image
-    const base64 = await qrCode_c.toDataURL(stringdata) //convert to qr code to data url
-    return (base64)
+  visitorData = await visitor.find({"IC_num" : data}, {projection : {"ref_num" : 1 , "name" : 1 , "category" : 1 , "user_id" : 1, _id : 0}}).next() //find visitor data
+  if(visitorData){ //check if visitor exist
+    userData = await user.find({"user_id" : visitorData.user_id}, {projection : { "unit" : 1 , "_id" : 0}}).next() //find user data
+    //add both hp_num and unit into visitor data
+    visitorData["user_unit"] = userData.unit
+    let stringdata = JSON.stringify(visitorData)
+    const canvas = await qrCode_c.toString(stringdata) //convert to qr code to an image
+    //const base64 = await qrCode_c.toDataURL(stringdata) //convert to qr code to data url
+    return (canvas)
   }else{
     return
   }
@@ -681,7 +626,7 @@ function currentTime(){
 
 //generate token for login authentication
 function generateToken(loginProfile){
-  return jwt.sign(loginProfile, process.env.bigSecret , { expiresIn: '1h' });
+  return jwt.sign(loginProfile, 'key' , { expiresIn: '1h' });
 }
 
 //verify generated tokens
@@ -693,7 +638,7 @@ function verifyToken(req, res, next){
   }
   let header = req.headers.authorization
   let token = header.split(' ')[1] //checking header //process.env.fuckyou
-  jwt.verify(token,process.env.bigSecret,function(err,decoded){
+  jwt.verify(token,'key',function(err,decoded){
     if(err) {
       res.status(401).send(errorMessage() + "Token is not valid D:, go to the counter to exchange (joke)")
       return

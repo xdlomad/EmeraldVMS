@@ -82,11 +82,11 @@
  *       content:
  *         application/json:
  *           example:
- *             user_id: "new_user"
- *             password: "password123"
- *             name: "John Doe"
- *             unit: "Apartment A"
- *             hp_num: "+123456789"
+ *             user_id: "R1111"
+ *             password: "weakPassword"
+ *             name: "Bob"
+ *             unit: "T-3-1"
+ *             hp_num: "11222222"
  *     responses:
  *       200:
  *         description: Successful response.
@@ -102,7 +102,7 @@
 
 /**
  * @swagger
- * /finduser/{name}:
+ * /finduser/{user_id}:
  *   get:
  *     tags:
  *      - Manage Users
@@ -112,10 +112,10 @@
  *       - BearerAuth: [] 
  *     parameters:
  *      - in: path
- *        name: name
+ *        USER ID: user_id
  *        required: true
  *        type: string
- *        description: the name
+ *        description: Insert the ID of the user you want to find
  *     responses:
  *       200:
  *         description: Successful response. User information retrieved.
@@ -320,9 +320,6 @@
  *            hp_num:
  *              type: string
  *              example: "012-61942211"
- *            pass:
- *              type: boolean
- *              example: false
  *            category:
  *              type: string
  *              example: "DELIVERY"
@@ -378,12 +375,9 @@
  *            car_num:
  *              type: string
  *              example: "WWW7777"
- *            hp_num:
+ *            hp:
  *              type: string
  *              example: "+987654321"
- *            pass:
- *              type: string
- *              example: "SERVICE-B"
  *            category:
  *              type: string
  *              example: "Maintenance"
@@ -458,7 +452,7 @@
  * /createPass/{ref_num}:
  *   patch:
  *     tags:
- *       - Manage Visitors
+ *       - Manage Visitors Pass
  *     security:
  *       - BearerAuth: [] 
  *     summary: Issue visitor pass 
@@ -489,12 +483,57 @@
 
 /**
  * @swagger
+ * /verifyPass:
+ *   post:
+ *     tags:
+ *       - Manage Visitors Pass
+ *     summary: Verification of Visitor Pass
+ *     security:
+ *       - BearerAuth: [] 
+ *     description: Verify the data scanned from the QR code
+ *     requestBody:
+ *      description: Security/Admin use this to verify visitor pass
+ *      required: true
+ *      content:
+ *        application/json:
+ *         schema:
+ *          type: object
+ *          properties:
+ *            ref_num:
+ *              type: string
+ *              example: "a hash value" 
+ *            unit:
+ *              type: string
+ *              example: "T-1-1-1" 
+ *     responses:
+ *       200:
+ *         description: Verified visitor , able to pass
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   description: Success message
+ *       400:
+ *         description: Invalid request or visitor not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   description: Error message
+ */
+
+/**
+ * @swagger
  * /retrievePass/{IC_num}:
  *   get:
  *     tags:
- *       - Visitors
- *     security:
- *       - BearerAuth: [] 
+ *       - Manage Visitors Pass
  *     summary: Create QR code for visitor
  *     description: |
  *       Create a QR code for a visitor based on their IC number.
