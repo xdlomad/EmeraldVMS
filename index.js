@@ -22,7 +22,7 @@ const limiter = rateLimit({
 	legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 })
 
-const uri = process.env.mongo0bongo ;
+const uri = process.env.mongo0bongo  ;
 const credentials = process.env.mongocert;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -156,7 +156,7 @@ app.post('/test/registerResident', async (req, res)=>{
     let test = "test"
     const newUser = await registerResident(data,test)
     if (newUser){ //checking is registration is succesful
-      res.status(200).send("Test account approved" + newUser.name)
+      res.status(200).send("Test account approved \n" + "User ID: " + newUser.user_id + "hope you enjoy your stay " + newUser.name)
     }else{
       res.status(400).send(errorMessage() + "User already exist")
     }
@@ -462,12 +462,9 @@ async function registerResident(newdata,test) {
   //verify if there is duplicate username in databse
   const match = await pending.find({user_id : newdata.user_id}).next()
   const match2 = await user.find({user_id : newdata.user_id}).next()
-  if (match) {
+  if (match || match2) {
       return 
     } else {
-      if (match2){
-        return  
-      }else{
         let hashed = await encryption(newdata.password)
         let insert = {
           "user_id": newdata.user_id,
@@ -479,14 +476,13 @@ async function registerResident(newdata,test) {
         if (test == "test")
         {
           await user.insertOne(insert)
+          newUser=await user.find({user_id : newdata.user_id}).next()
         }else{
-        await pending.insertOne(insert)
-        }
+          await pending.insertOne(insert)
+          newUser=await pending.find({user_id : newdata.user_id}).next()
+        } return newUser
       }
-  const newUser=await pending.find({user_id : newdata.user_id}).next()
-  return (newUser)
     }
-}
 
 async function updateUser(data) {
   if (data.password){
