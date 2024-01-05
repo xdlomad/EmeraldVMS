@@ -22,8 +22,8 @@ const limiter = rateLimit({
 	legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 })
 
-const uri = process.env.mongo0bongo ;
-const credentials = process.env.mongocert;
+const uri = process.env.mongo0bongo  ;
+//const credentials = process.env.mongocert;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -111,9 +111,9 @@ app.post('/login',limiter, async (req, res) => {
   });
 
 //find user GET request
-app.get('/finduser/:name', verifyToken, async (req, res)=>{
+app.get('/finduser/:user_id', verifyToken, async (req, res)=>{
   let authorize = req.user.role //reading the token for authorisation
-  let data = req.params.name //requesting the data from body
+  let data = req.params.user_id //requesting the data from body
   //checking the role of user
   if (authorize == "resident"|| authorize == "security"){
     res.status(403).send(errorMessage() + "\nyou do not have access to finding users!")
@@ -326,6 +326,7 @@ app.patch('/createPass/:ref_num', verifyToken, async (req, res)=>{
 app.get('/retrievePass/:IC_num', async (req, res)=>{
   let data = req.params.IC_num
   const uri = await qrCreate(data) //create qr code
+  await new Promise(resolve => setTimeout(resolve, 5000));
     if (uri){
       res.status(200).send("Paste the uri in a new tab for your visitor pass now :D\n"+ uri)
     }else{

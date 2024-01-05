@@ -112,8 +112,7 @@
  *       - BearerAuth: [] 
  *     parameters:
  *      - in: path
- *        USER ID: user_id
- *        required: true
+ *        name: user_id
  *        type: string
  *        description: Insert the ID of the user you want to find
  *     responses:
@@ -272,11 +271,11 @@
  *     description: Retrieve a list of visitors based on the provided criteria. Only residents can find their own visitors. Leave the space blank,if a list of visitors is needed
  *     security:
  *       - BearerAuth: []  # Use the security scheme defined in your Swagger definition for authentication
- *     parameters:
- *      - in: path
- *        name: ref_num
- *        type: string
- *        description: The ref_num.
+    *     parameters:
+    *      - in: path
+    *        name: ref_num
+    *        type: string
+    *        description: The ref_num.
  *     responses:
  *       200:
  *         description: Successful response. List of visitors matching the criteria.
