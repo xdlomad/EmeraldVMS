@@ -572,6 +572,8 @@
  *                 error:
  *                   type: string
  *                   description: Error message
+ *       401:
+ *         description: Unauthorized. Token not valid.
  */
 
 
@@ -690,6 +692,8 @@
  *                 error:
  *                   type: string
  *                   description: Error message
+ *       401:
+ *         description: Unauthorized. Token not valid.
  */
 
 
