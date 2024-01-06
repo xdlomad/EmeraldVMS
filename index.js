@@ -15,7 +15,7 @@ const { rateLimit } = require('express-rate-limit')
 const { MongoClient, ServerApiVersion } = require('mongodb');
 
 const limiter = rateLimit({
-	windowMs: 1 * 60 * 1000, // 15 minutes
+	windowMs: 3 * 60 * 1000, // 15 minutes
 	max: 5, // Limit each IP to 100 requests per `window` (here, per 15 minutes)
 	message : "Too many requests from this IP, please try again after 5 minutes",
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
@@ -86,6 +86,7 @@ app.use('/VMS', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 //login POST request
 app.post('/login',limiter, async (req, res) => {
     let data = req.body
+    toString(data)
     let result = await login(data);
     const loginuser = result.verify;
     const token = result.token;
@@ -98,7 +99,7 @@ app.post('/login',limiter, async (req, res) => {
         res.write(loginuser.user_id + " has logged in!\nWelcome "+ loginuser.name + 
         "!\nYour token : " + token +"\n\nList of hosts : \n"  )
         for (i=0; i<j; i++){
-        res.write(JSON.stringify(hosts[i]) + "\n-----------------------------------\n" );
+        res.write(JSON.stringify(hosts[i],null,"\t") + "\n-----------------------------------\n" );
         }
         res.end("\n\nPlease proceed to the admin page to view the list of hosts")
       }else{
@@ -153,10 +154,11 @@ app.post('/registeruser', verifyToken, async (req, res)=>{
 //register user post request
 app.post('/test/registerResident', async (req, res)=>{
     let data = req.body //requesting the data from body
-    let test = "test"
+    let test = true
+    toString(data)
     const newUser = await registerResident(data,test)
     if (newUser){ //checking is registration is succesful
-      res.status(200).send("Test account approved \n" + "User ID: " + newUser.user_id + "hope you enjoy your stay " + newUser.name)
+      res.status(200).send("Test account approved \n" + "User ID: " + newUser.user_id + "\nHope you enjoy your stay " + newUser.name)
     }else{
       res.status(400).send(errorMessage() + "User already exist")
     }
@@ -169,7 +171,7 @@ app.post('/registerResident', async (req, res) =>{
   //checking the role of user
     const newUser = await registerResident(data)
     if (newUser){ //checking is registration is succesful
-      res.status(200).send("Registration request processed, please wait for admin approval " + newUser.name)
+      res.status(200).send("Registration request processed, please wait for admin approval\n Username: " + newUser.name)
     }else{
       res.status(400).send(errorMessage() + "Approval Pending or User already exist")
     }
@@ -203,10 +205,10 @@ app.patch('/updateuser', verifyToken, async (req, res)=>{
     res.status(404).send("you do not have access to update user information!")
   }else if (authorize == "admin" ){
     const result = await updateUser(data)
-    if (result){ // checking if the user exist and updated
-      res.status(200).send("User updated! " + result.name)
+    if (typeof(result) == "object"){ // checking if the user exist and updated
+      res.status(200).send("User updated! The new user info:\n" + JSON.stringify(result,null,'\t'))
     }else{
-      res.status(400).send(errorMessage() + "User does not exist!")
+      res.status(400).send(errorMessage() + result)
     }
   }else {
       res.status(401).send(errorMessage() + "Token not valid")
@@ -260,7 +262,11 @@ app.get('/findvisitor/:ref_num', verifyToken, async (req, res)=>{
   //checking the role of user
   if (authorize.role){
     const result = await findVisitor(data,authorize) //find visitor
+    if(result)
     res.status(200).send(result)
+    else{
+      res.status(404).send(errorMessage() + "Visitor does not exist!")
+    }
   }else{
     res.status(401).send(errorMessage() + "Not a valid token!") 
   }
@@ -306,13 +312,14 @@ app.delete('/deletevisitor', verifyToken, async (req, res)=>{
 
 
 //create a qr code for visitor
-app.patch('/createPass/:ref_num', verifyToken, async (req, res)=>{
+app.patch('/issuePass/:ref_num', verifyToken, async (req, res)=>{
   let data = req.params.ref_num
   let authorize = req.user
+  toString(data)
   if (authorize.role){ //checking if token is valid
   const success = await approvePass(data, authorize) //create qr code
     if (success){
-      res.status(200).send("visitor is approved for a pass\n"+ success.ref_num)
+      res.status(200).send("ref num: " + success.ref_num + "\nvisitor is approved for a pass\n")
     }else{
       res.status(404).send(errorMessage() + "No such visitor found")
     }
@@ -326,7 +333,7 @@ app.patch('/createPass/:ref_num', verifyToken, async (req, res)=>{
 app.get('/retrievePass/:IC_num', async (req, res)=>{
   let data = req.params.IC_num
   const uri = await qrCreate(data) //create qr code
-  await new Promise(resolve => setTimeout(resolve, 5000));
+  await new Promise(resolve => setTimeout(resolve, 3000));
     if (uri){
       res.status(200).send("Paste the uri in a new tab for your visitor pass now :D\n"+ uri)
     }else{
@@ -474,7 +481,7 @@ async function registerResident(newdata,test) {
           "unit": newdata.unit,
           "hp_num" : newdata.hp_num,
           "role" : "resident" }
-        if (test == "test")
+        if (test == true)
         {
           await user.insertOne(insert)
           newUser=await user.find({user_id : newdata.user_id}).next()
@@ -489,12 +496,19 @@ async function updateUser(data) {
   if (data.password){
   data.password = await encryption(data.password) //encrypt the password
   }
-  result = await user.findOneAndUpdate({user_id : data.user_id},{$set : data}, {new: true})
-  if(result == null){ //check if user exist
-    return 
+  amAdmin = await user.find({user_id : data.user_id}).next()
+  if (amAdmin == null){
+    return ("User does not exist")
+  }else if (amAdmin.role == "admin"){
+    return ("Admin cannot be updated!")
   }else{
-    return (result)
-  }
+    result = await user.findOneAndUpdate({user_id : data.user_id},{$set : data}, {new: true})
+    if(result == null){ //check if user exist
+      return ("User does not exist!")
+    }else{
+      return (result)
+    }
+}
 }
 
 async function deleteUser(data) {
@@ -556,11 +570,7 @@ async function findVisitor(newdata, currentUser){
     match = await visitor.find({"ref_num":newdata}).next()
     }
   }
-  if (match != 0){ //check if there is any visitor
     return (match)
-  } else{
-    res.status() (errorMessage() + "Visitor does not exist!")
-  }
 }
 
 async function updateVisitor(data, currentUser) {
@@ -707,6 +717,18 @@ async function encryption(data){
   const salt= await bcrypt.genSalt(saltRounds)
   const hashh = await bcrypt.hash(data,salt)
   return hashh
+}
+
+async function toString(o) {
+  Object.keys(o).forEach(k => {
+    if (typeof o[k] === 'object') {
+      return toString(o[k]);
+    }
+    
+    o[k] = '' + o[k];
+  });
+  
+  return o;
 }
 
 //error message generator

@@ -9,6 +9,8 @@
  *     description: available to admin, security, and residents
  *   - name: Manage Visitor Logs
  *     description: available to admin and security
+ *   - name: Manage Visitor Pass
+ *     description: Authenticated users can issue pass, only security/admin can verify.
  */
 
 /**
@@ -36,6 +38,8 @@
  *         description: User logged in successfully
  *       400:
  *         description: User logged in failure
+ *       500:
+ *         description: Internal Server Error. Something went wrong on the server.
  */
 
 /**
@@ -367,16 +371,16 @@
  *              example: "615671031"
  *            name:
  *              type: string
- *              example: "891004-07-0110"
+ *              example: "Xiao Long Bao"
  *            IC_num:
  *              type: string
- *              example: "01109876123"
+ *              example: "891004-07-0110"
  *            car_num:
  *              type: string
  *              example: "WWW7777"
  *            hp:
  *              type: string
- *              example: "+987654321"
+ *              example: "01109876123"
  *            category:
  *              type: string
  *              example: "Maintenance"
@@ -448,10 +452,10 @@
 
 /**
  * @swagger
- * /createPass/{ref_num}:
+ * /issuePass/{ref_num}:
  *   patch:
  *     tags:
- *       - Manage Visitors Pass
+ *       - Manage Visitor Pass
  *     security:
  *       - BearerAuth: [] 
  *     summary: Issue visitor pass 
@@ -485,7 +489,7 @@
  * /verifyPass:
  *   post:
  *     tags:
- *       - Manage Visitors Pass
+ *       - Manage Visitor Pass
  *     summary: Verification of Visitor Pass
  *     security:
  *       - BearerAuth: [] 
@@ -532,9 +536,9 @@
  * /retrievePass/{IC_num}:
  *   get:
  *     tags:
- *       - Manage Visitors Pass
+ *       - Manage Visitor Pass
  *     summary: Create QR code for visitor
- *     description: |
+ *     description: 
  *       Create a QR code for a visitor based on their IC number.
  *       The QR code contains visitor information such as reference number, name, category, and contact number.
  *     parameters:
