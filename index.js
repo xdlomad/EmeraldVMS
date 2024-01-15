@@ -14,6 +14,8 @@ const qrCode_c = require('qrcode');
 const { rateLimit } = require('express-rate-limit')
 const { MongoClient, ServerApiVersion } = require('mongodb');
 
+require("dotenv").config();
+
 const limiter = rateLimit({
 	windowMs: 3 * 60 * 1000, // 15 minutes
 	max: 5, // Limit each IP to 100 requests per `window` (here, per 15 minutes)
@@ -22,7 +24,7 @@ const limiter = rateLimit({
 	legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 })
 
-const uri = process.env.mongo0bongo  ;
+const uri = process.env.mongo0bongo ;
 //const credentials = process.env.mongocert;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -45,9 +47,20 @@ const user = client.db("EmeraldVMS").collection("users")
 const visitor = client.db("EmeraldVMS").collection("visitors")
 const visitorLog = client.db("EmeraldVMS").collection("visitor_log")
 const pending = client.db("EmeraldVMS").collection("Pending_users")
-//app.use(express.json())
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }) );
+
+app.use(express.json(({
+    verify : (req, res, buf, encoding) => {
+      try {
+        JSON.parse(buf);
+      } catch(e) {
+        res.status(415).send('request body format has an error. Missing a , or }');
+        throw Error('invalid JSON');
+      }
+    }
+  }
+)))
+// app.use(bodyParser.json());
+// app.use(bodyParser.urlencoded({ extended: true }) );
 
 app.get('/', (req, res) => {
    res.redirect('/VMS')
@@ -156,11 +169,11 @@ app.post('/test/registerResident', async (req, res)=>{
     let data = req.body //requesting the data from body
     let test = true
     toString(data)
-    const newUser = await registerResident(data,test)
+    const [newUser, error] = await registerResident(data,test)
     if (newUser){ //checking is registration is succesful
       res.status(200).send("Test account approved \n" + "User ID: " + newUser.user_id + "\nHope you enjoy your stay " + newUser.name)
     }else{
-      res.status(400).send(errorMessage() + "User already exist")
+      res.status(400).send(errorMessage() + error )
     }
   //token does not exist
   })
@@ -169,11 +182,11 @@ app.post('/test/registerResident', async (req, res)=>{
 app.post('/registerResident', async (req, res) =>{
   let data = req.body //requesting the data from body
   //checking the role of user
-    const newUser = await registerResident(data)
+    const [newUser, error] = await registerResident(data)
     if (newUser){ //checking is registration is succesful
       res.status(200).send("Registration request processed, please wait for admin approval\n Username: " + newUser.name)
     }else{
-      res.status(400).send(errorMessage() + "Approval Pending or User already exist")
+      res.status(400).send(errorMessage() + error)
     }
   //token does not exist
   })
@@ -468,11 +481,15 @@ async function registerUser(newdata) {
 
 async function registerResident(newdata,test) {
   //verify if there is duplicate username in databse
-  const match = await pending.find({user_id : newdata.user_id}).next()
-  const match2 = await user.find({user_id : newdata.user_id}).next()
-  if (match || match2) {
+  const match = await pending.find({ $or: [ { user_id : newdata.user_id }, {unit : newdata.unit} ] }).next()
+  const match2 = await user.find({ $or: [ { user_id : newdata.user_id }, {unit : newdata.unit} ] }).next()
+  if (match || match2) {  
       return 
     } else {
+      if (CheckPassword(newdata.password) == false){
+        error = "Password must be between 5 to 15 characters which contain at least one numeric digit and a special character"
+        return [null, error]
+      }
         let hashed = await encryption(newdata.password)
         let insert = {
           "user_id": newdata.user_id,
@@ -485,10 +502,12 @@ async function registerResident(newdata,test) {
         {
           await user.insertOne(insert)
           newUser=await user.find({user_id : newdata.user_id}).next()
+          error = "User already exist"
         }else{
           await pending.insertOne(insert)
           newUser=await pending.find({user_id : newdata.user_id}).next()
-        } return newUser
+          error = "User registration already pending or user already exist!"
+        } return [newUser, error]
       }
     }
 
@@ -689,7 +708,7 @@ function currentTime(){
 
 //generate token for login authentication
 function generateToken(loginProfile){
-  return jwt.sign(loginProfile,process.env.bigSecret , { expiresIn: '1h' });
+  return jwt.sign(loginProfile, process.env.bigSecret , { expiresIn: '1h' });
 }
 
 //verify generated tokens
@@ -750,3 +769,16 @@ function errorMessage(){
     return ("Oi bo- Sir/Madam, we seem to have an error\n")
   }
 }
+
+function CheckPassword(inputtxt) 
+{ 
+var paswd=  /^(?=.*[0-9])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]{5,15}$/;
+if(inputtxt.match(paswd)) 
+{ 
+return true
+}
+else
+{ 
+return false
+}
+}  

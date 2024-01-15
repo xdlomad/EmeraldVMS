@@ -49,7 +49,9 @@
  *     tags:
  *      - Login
  *     summary: New Resident registering
- *     description: Register as a new user with the provided information.
+ *     description: |
+ *      Register as a new user with the provided information. <br><br>
+ *      Password must be within 5-15 characters including at least  1 number, and 1 special character.
  *     requestBody:
  *       required: true
  *       content:
