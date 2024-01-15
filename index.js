@@ -1,3 +1,4 @@
+//libraries export
 const express = require('express')
 const app = express()
 const jwt = require('jsonwebtoken');
@@ -16,6 +17,7 @@ const { MongoClient, ServerApiVersion } = require('mongodb');
 
 require("dotenv").config();
 
+//rate limiter to prevent brute force attack
 const limiter = rateLimit({
 	windowMs: 3 * 60 * 1000, // 15 minutes
 	max: 5, // Limit each IP to 100 requests per `window` (here, per 15 minutes)
@@ -24,6 +26,7 @@ const limiter = rateLimit({
 	legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 })
 
+//environment variables
 const uri = process.env.mongo0bongo ;
 //const credentials = process.env.mongocert;
 
@@ -48,6 +51,7 @@ const visitor = client.db("EmeraldVMS").collection("visitors")
 const visitorLog = client.db("EmeraldVMS").collection("visitor_log")
 const pending = client.db("EmeraldVMS").collection("Pending_users")
 
+//middleware to parse json with checking of json format
 app.use(express.json(({
     verify : (req, res, buf, encoding) => {
       try {
@@ -62,10 +66,13 @@ app.use(express.json(({
 // app.use(bodyParser.json());
 // app.use(bodyParser.urlencoded({ extended: true }) );
 
+
+//redirect to main page
 app.get('/', (req, res) => {
    res.redirect('/VMS')
 })
 
+//start of server
 app.listen(port, () => {
    console.log(`Example app listening on port ${port}`)
 })
@@ -92,8 +99,10 @@ const swaggerOptions = {
   apis: ['./swagger.js'], // Path to your route files
 };
 
+// Initialize swagger-jsdoc -> returns validated swagger spec in json format
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
+// Setup swagger route
 app.use('/VMS', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 //login POST request
@@ -483,8 +492,10 @@ async function registerResident(newdata,test) {
   //verify if there is duplicate username in databse
   const match = await pending.find({ $or: [ { user_id : newdata.user_id }, {unit : newdata.unit} ] }).next()
   const match2 = await user.find({ $or: [ { user_id : newdata.user_id }, {unit : newdata.unit} ] }).next()
-  if (match || match2) {  
-      return 
+  if (match) {
+    return [null, "User registration already pending or user already exist!"]
+  }else if (match2){
+      return [null, "User already exist!"]
     } else {
       if (CheckPassword(newdata.password) == false){
         error = "Password must be between 5 to 15 characters which contain at least one numeric digit and a special character"
@@ -502,12 +513,11 @@ async function registerResident(newdata,test) {
         {
           await user.insertOne(insert)
           newUser=await user.find({user_id : newdata.user_id}).next()
-          error = "User already exist"
         }else{
           await pending.insertOne(insert)
           newUser=await pending.find({user_id : newdata.user_id}).next()
-          error = "User registration already pending or user already exist!"
-        } return [newUser, error]
+        }
+        return [newUser, null]
       }
     }
 
