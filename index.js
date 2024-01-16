@@ -28,16 +28,16 @@ const limiter = rateLimit({
 
 //environment variables
 const uri = process.env.mongo0bongo ;
-const credentials = './X509-cert-6386210832451249437.pem';
+//const credentials = '';
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
-const client = new MongoClient(process.env.mongoTest, {
+const client = new MongoClient(uri, {
     serverApi: {
       version: ServerApiVersion.v1,
       strict: true,
       deprecationErrors: true, 
     },
-    tlsCertificateKeyFile: credentials
+    //tlsCertificateKeyFile: credentials
   });
 
   
