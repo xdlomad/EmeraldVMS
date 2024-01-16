@@ -193,7 +193,7 @@ app.post('/registerResident', async (req, res) =>{
   //checking the role of user
     const [newUser, error] = await registerResident(data)
     if (newUser){ //checking is registration is succesful
-      res.status(200).send("Registration request processed, please wait for admin approval\n Username: " + newUser.name)
+      res.status(200).send("Registration request processed, please wait for admin approval\nUsername: " + newUser.name)
     }else{
       res.status(400).send(errorMessage() + error)
     }
@@ -229,6 +229,7 @@ app.get('/checkPendings',verifyToken, async (req, res)=>{
     }else if (authorize == "admin" ){
       const newUser = await approveResident(data)
       if (newUser){
+        console.log(newUser)
         res.status(200).send("new user info:\n user_id" + " : " + newUser.user_id + "\n name : " + newUser.name + "\n unit : " + newUser.unit + "\n hp_num : " + newUser.hp_num)
       }else { 
         res.status(400).send("no such user!")
@@ -289,7 +290,7 @@ app.post('/registervisitor', verifyToken, async (req, res)=>{
   if(authorize.role){
   const visitorData = await registerVisitor(data, authorize) //register visitor
     if (visitorData){
-      res.status(200).send("Registration request processed, new visitor info: \n name : \n" + visitorData.name + "\n reference number : \n" + visitorData.ref_num )
+      res.status(200).send("Registration request processed, new visitor info: \nname : \n" + visitorData.name + "\nreference number : \n" + visitorData.ref_num )
     }else{
       res.status(400).send(errorMessage() + "Visitor already exists! Add a visit log instead!")
     }
@@ -548,7 +549,8 @@ async function approveResident(newdata) {
   const match = await pending.find({ user_id : newdata } ).next()
   if (match) {
     await pending.deleteOne({user_id : newdata})
-    newUser = await user.insertOne(match)
+    await user.insertOne(match)
+    newUser = await user.findOne({user_id : newdata}).next()
     return (newUser)
     } else {
       return (null)
@@ -622,7 +624,7 @@ async function registerVisitor(newdata, currentUser) {
 async function findVisitor(newdata, currentUser){
   if (currentUser.role == "resident"){
     if (newdata == ","){ // only allow resident to find their own visitors
-     match = await visitor.find({}, {"user_id" : currentUser.user_id}, {projection: {_id :0}}).toArray()
+     match = await visitor.find({"user_id" : currentUser.user_id}, {projection: {_id :0}}).toArray()
     }else{
       match = await visitor.find({"ref_num" : newdata}, {"user_id" : currentUser.user_id}, {projection: {_id :0}}).toArray()
     }
@@ -721,10 +723,10 @@ async function verifyPass(data, currentUser){
 
 //function to create qrcode file
 async function qrCreate(data){
-  visitorData = await visitor.find({"IC_num" : data}, {projection : {"ref_num" : 1, "unit" : 1 , "pass" : 1, "_id": 0 }}).next() //find visitor data
+  visitorData = await visitor.find({"IC_num" : data}, {projection : {"ref_num" : 1, "unit" : 1 , "pass" : 1, visit_date: 1 ,"_id": 0 }}).next() //find visitor data
   if(visitorData.pass == true){ //check if visitor exist
     let hashed = await encryption(visitorData.ref_num)
-    let stringdata = {ref_num : hashed, unit : visitorData.unit}
+    let stringdata = {ref_num : hashed, unit : visitorData.unit, visit_date : visitorData.visit_date}
     stringdata = JSON.stringify(stringdata)
     //const canvas = await qrCode_c.toString(stringdata) //convert to qr code to an image
     const base64 = await qrCode_c.toDataURL(stringdata) //convert to qr code to data url
