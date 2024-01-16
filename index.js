@@ -207,7 +207,7 @@ app.get('/checkPendings',verifyToken, async (req, res)=>{
   if (authorize == "security" || authorize == "resident"){
     res.status(403).send("you do not have access to viewing pending request!")
   }else if (authorize == "admin" ){
-    const pendingList = await pending.find().toArray();
+    const pendingList = await pending.find({},{projection : {password : 0}}).toArray();
     if (pendingList){ //checking is registration is succesful
       res.status(200).send(pendingList)
     }else { 
@@ -222,17 +222,16 @@ app.get('/checkPendings',verifyToken, async (req, res)=>{
   //register user post request
   app.get('/approvePending/:user_id',verifyToken, async (req, res)=>{
     //checking the role of user
+    let data = req.params.user_id
     let authorize = req.user.role //reading the token for authorisation
     if (authorize == "security" || authorize == "resident"){
       res.status(403).send("you do not have access to viewing pending request!")
     }else if (authorize == "admin" ){
-      const pendingUser = await pending.find({user_id : req.params.user_id}).next();
-      if (pendingUser){ //checking is registration is succesful
-        const newUser = await approveResident(pendingUser)
-        await pending.deleteOne({user_id : req.params.user_id})
-        res.status(200).send(newUser)
+      const newUser = await approveResident(data)
+      if (newUser){
+        res.status(200).send("new user info:\n user_id" + " : " + newUser.user_id + "\n name : " + newUser.name + "\n unit : " + newUser.unit + "\n hp_num : " + newUser.hp_num)
       }else { 
-        res.status(400).send("No requests pending!")
+        res.status(400).send("no such user!")
       }
     //token does not exist
     }else{
@@ -544,38 +543,17 @@ async function registerResident(newdata,test) {
       }
     }
 
-    async function registerResident(newdata) {
-      //verify if there is duplicate username in databse
-      const match = await pending.find({ $or: [ { user_id : newdata.user_id }, {unit : newdata.unit} ] }).next()
-      const match2 = await user.find({ $or: [ { user_id : newdata.user_id }, {unit : newdata.unit} ] }).next()
-      if (match) {
-        return [null, "User registration already pending or user already exist!"]
-      }else if (match2){
-          return [null, "User already exist!"]
-        } else {
-          if (CheckPassword(newdata.password) == false){
-            error = "Password must be between 5 to 15 characters which contain at least one numeric digit and a special character"
-            return [null, error]
-          }
-            let hashed = await encryption(newdata.password)
-            let insert = {
-              "user_id": newdata.user_id,
-              "password": hashed,
-              "name": newdata.name,
-              "unit": newdata.unit,
-              "hp_num" : newdata.hp_num,
-              "role" : "resident" }
-            if (test == true)
-            {
-              await user.insertOne(insert)
-              newUser=await user.find({user_id : newdata.user_id}).next()
-            }else{
-              await pending.insertOne(insert)
-              newUser=await pending.find({user_id : newdata.user_id}).next()
-            }
-            return [newUser, null]
-          }
-        }
+async function approveResident(newdata) {
+  //verify if there is duplicate username in databse
+  const match = await pending.find({ user_id : newdata } ).next()
+  if (match) {
+    await pending.deleteOne({user_id : newdata})
+    newUser = await user.insertOne(match)
+    return (newUser)
+    } else {
+      return (null)
+      }
+    }
 
 async function updateUser(data) {
   if (data.password){
