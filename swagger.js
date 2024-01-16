@@ -291,6 +291,29 @@
  *         description: Unauthorized. Token not valid.
  */
 
+/**
+ * @swagger
+ * /approvePending/{user_id}:
+ *   get:
+ *     tags:
+ *      - Manage Users
+ *     summary: Approve pending registration request
+ *     description: Approve pending registration request as admin.
+ *     security:
+ *       - BearerAuth: []  # Use the security scheme defined in your Swagger definition for authentication
+    *     parameters:
+    *      - in: path
+    *        name: user_id
+    *        type: string
+    *        description: user id of the user to be approved.
+ *     responses:
+ *       200:
+ *         description: Successful response. User approved and is able to login now
+ *       404:
+ *         description: User not found.
+ *       401:
+ *         description: Unauthorized. Token not valid.
+ */
 
 /**
  * @swagger
@@ -331,9 +354,6 @@
  *            visit_date:
  *              type: string
  *              example: "2023-06-30"
- *            unit:
- *              type: string
- *              example: "T-7-4"
  *     responses:
  *       200:
  *         description: Successful response. Visitor registered successfully.
@@ -389,9 +409,6 @@
  *            visit_date:
  *              type: string
  *              example: "2023-09-12"
- *            unit:
- *              type: string
- *              example: "SWIMMING POOL"
  *     responses:
  *       200:
  *         description: Successful response. Visitor information updated.
