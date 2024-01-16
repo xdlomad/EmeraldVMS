@@ -84,7 +84,7 @@ const swaggerOptions = {
     info: {
       title: 'Visitor Management System',
       version: '1.0.0',
-      description: 'Visitor Management System using Swagger and Node.js',
+      description: 'Powered by Azure, MongoDB and swagger API. Email the admin at b022110096@student.utem.edu.my for any queries',
     },
     components:{
       securitySchemes: {
@@ -193,7 +193,7 @@ app.post('/registerResident', async (req, res) =>{
   //checking the role of user
     const [newUser, error] = await registerResident(data)
     if (newUser){ //checking is registration is succesful
-      res.status(200).send("Registration request processed, please wait for admin approval\nUsername: " + newUser.name)
+      res.status(200).send("Registration request processed, please wait for admin approval\nName: " + newUser.name)
     }else{
       res.status(400).send(errorMessage() + error)
     }
@@ -229,7 +229,6 @@ app.get('/checkPendings',verifyToken, async (req, res)=>{
     }else if (authorize == "admin" ){
       const newUser = await approveResident(data)
       if (newUser){
-        console.log(newUser)
         res.status(200).send("new user info:\n user_id" + " : " + newUser.user_id + "\n name : " + newUser.name + "\n unit : " + newUser.unit + "\n hp_num : " + newUser.hp_num)
       }else { 
         res.status(400).send("no such user!")
@@ -550,7 +549,7 @@ async function approveResident(newdata) {
   if (match) {
     await pending.deleteOne({user_id : newdata})
     await user.insertOne(match)
-    newUser = await user.findOne({user_id : newdata}).next()
+    newUser = await user.find({user_id : newdata}).next()
     return (newUser)
     } else {
       return (null)
