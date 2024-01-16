@@ -527,6 +527,9 @@
  *            unit:
  *              type: string
  *              example: "T-1-1-1" 
+ *            visit_date:
+ *              type: string
+ *              example: "2024-1-1" 
  *     responses:
  *       200:
  *         description: Verified visitor , able to pass

@@ -379,10 +379,10 @@ app.get('/retrievePass/:IC_num', async (req, res)=>{
   let data = req.params.IC_num
   const uri = await qrCreate(data) //create qr code
   await new Promise(resolve => setTimeout(resolve, 3000));
-    if (uri){
+    if (typeof(uri) == "string" && uri.includes("data:image/png;base64,")){
       res.status(200).send("Paste the uri in a new tab for your visitor pass now :D\n"+ uri)
     }else{
-      res.status(404).send(errorMessage() + "No such visitor found or you have not been permitted for a pass")
+      res.status(404).send(errorMessage() + uri)
     }
   }
 )
@@ -707,7 +707,7 @@ async function approvePass(data, currentUser){
 }
 
 async function verifyPass(data, currentUser){
-  let verify = await visitor.find({"unit": data.unit},{projection : { "_id": 0 }} ).toArray();
+  let verify = await visitor.find({"unit": data.unit, "visit_date":data.visit_date},{projection : { "_id": 0 }} ).toArray();
   if(verify){
     for (i=0; i<verify.length; i++){
     const correct = await bcrypt.compare(verify[i].ref_num,data.ref_num);
@@ -724,6 +724,9 @@ async function verifyPass(data, currentUser){
 //function to create qrcode file
 async function qrCreate(data){
   visitorData = await visitor.find({"IC_num" : data}, {projection : {"ref_num" : 1, "unit" : 1 , "pass" : 1, visit_date: 1 ,"_id": 0 }}).next() //find visitor data
+  if (visitorData == null){
+    return ("No such visitor found!")
+  }
   if(visitorData.pass == true){ //check if visitor exist
     let hashed = await encryption(visitorData.ref_num)
     let stringdata = {ref_num : hashed, unit : visitorData.unit, visit_date : visitorData.visit_date}
@@ -732,7 +735,7 @@ async function qrCreate(data){
     const base64 = await qrCode_c.toDataURL(stringdata) //convert to qr code to data url
     return (base64)
   }else{
-    return
+    return ("You have not been approved for a pass yet!")
   }
 }
 
