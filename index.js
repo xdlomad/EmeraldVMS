@@ -126,6 +126,7 @@ app.post('/login',limiter, async (req, res) => {
         res.end("\n\nPlease proceed to the admin page to view the list of hosts")
       }else{
       res.status(200).send(loginuser.user_id + " has logged in!\nWelcome "+ loginuser.name +"!\nYour token : " + token)
+      onComplete()
       }
     }else {
       //else send the failure message
@@ -225,7 +226,7 @@ app.get('/checkPendings',verifyToken, async (req, res)=>{
     let data = req.params.user_id
     let authorize = req.user.role //reading the token for authorisation
     if (authorize == "security" || authorize == "resident"){
-      res.status(403).send("you do not have access to viewing pending request!")
+      res.status(403).send("you do not have access to approve pending requests!")
     }else if (authorize == "admin" ){
       const newUser = await approveResident(data)
       if (newUser){
@@ -376,6 +377,7 @@ app.patch('/issuePass/:ref_num', verifyToken, async (req, res)=>{
 //create a qr code for visitor
 app.get('/retrievePass/:IC_num', async (req, res)=>{
   let data = req.params.IC_num
+  console.log(data)
   const uri = await qrCreate(data) //create qr code
   await new Promise(resolve => setTimeout(resolve, 3000));
     if (typeof(uri) == "string" && uri.includes("data:image/png;base64,")){
@@ -456,11 +458,13 @@ app.patch('/checkOut', verifyToken, async (req, res)=>{
     }
   })
 
+  
+
 
 async function login(data) {
   console.log("Alert! Alert! Someone is logging in!") //Display message to ensure function is called
   //Verify username is in the database
-  let verify = await user.find({user_id : data.user_id}).next();
+  let verify = await user.find({user_id : data.user_id}, {projection : {_id : 0, password : 0 }}).next();
   if (verify){
     //verify password is correct
     const correctPassword = await bcrypt.compare(data.password,verify.password);
@@ -767,7 +771,7 @@ function verifyToken(req, res, next){
     return
   }
   let header = req.headers.authorization
-  let token = header.split(' ')[1] //checking header //process.env.fuckyou
+  let token = header.split(' ')[1] //checking header 
   jwt.verify(token,process.env.bigSecret,function(err,decoded){
     if(err) {
       res.status(401).send(errorMessage() + "Token is not valid D:, go to the counter to exchange (joke) , just login again")

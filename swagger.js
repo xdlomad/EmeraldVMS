@@ -483,7 +483,6 @@
  *     parameters:
  *      - in: path
  *        name: ref_num
- *        required: true
  *        type: string
  *        description: reference number of the visitor
  *     responses:
@@ -515,7 +514,6 @@
  *     description: Verify the data scanned from the QR code
  *     requestBody:
  *      description: Security/Admin use this to verify visitor pass
- *      required: true
  *      content:
  *        application/json:
  *         schema:
@@ -566,7 +564,6 @@
  *     parameters:
  *      - in: path
  *        name: IC_num
- *        required: true
  *        type: string
  *        description: The IC_NUM.
  *     responses:
