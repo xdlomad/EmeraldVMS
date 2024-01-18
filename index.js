@@ -119,7 +119,7 @@ app.post('/login',limiter, async (req, res) => {
         const hosts = result.hosts;
         res.writeHead(200, {'Content-Type': 'text/plain'}); 
         res.write(loginuser.user_id + " has logged in!\nWelcome "+ loginuser.name + 
-        "!\nYour token : " + token +"\n\nList of hosts : \n"  )
+        "!\nYour token: \n" + token +"\n\nList of hosts : \n"  )
         for (i=0; i<j; i++){
         res.write(JSON.stringify(hosts[i],null,"\t") + "\n-----------------------------------\n" );
         }
@@ -464,12 +464,13 @@ app.patch('/checkOut', verifyToken, async (req, res)=>{
 async function login(data) {
   console.log("Alert! Alert! Someone is logging in!") //Display message to ensure function is called
   //Verify username is in the database
-  let verify = await user.find({user_id : data.user_id}, {projection : {_id : 0, password : 0 }}).next();
+  let verify = await user.find({user_id : data.user_id}, {projection : {_id : 0 }}).next();
   if (verify){
     //verify password is correct
     const correctPassword = await bcrypt.compare(data.password,verify.password);
     if (correctPassword){
-      token = generateToken(verify)
+      dataToken =  await user.find({user_id : data.user_id}, {projection : {_id : 0, password : 0, name : 0, hp_num : 0}}).next();
+      token = generateToken(dataToken)
       if (verify.role == "admin"){
         console.log("Admin has logged in!")
         hosts = await user.find({role : "resident"}, {projection: {_id :0  , password : 0}}).toArray();
