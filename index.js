@@ -271,10 +271,10 @@ app.delete('/deleteuser', verifyToken, async (req, res)=>{
   }else if (authorize == "admin" ){
     const result = await deleteUser(data)
     //checking if item is deleted
-    if (result.deletedCount == "1"){
-      res.send("user deleted " + data.user_id)
+    if (typeof(result)== "object"){
+      res.send("user " + data.user_id + " successfully deleted!")
     }else{
-      res.status(400).send(errorMessage() + "Cannot find the user to delete!")
+      res.status(400).send(errorMessage() + result)
     }
   }else {
       res.status(401).send(errorMessage() + "Token not valid!")
@@ -582,8 +582,17 @@ async function updateUser(data) {
 
 async function deleteUser(data) {
   //delete user from database
+  amAdmin = await user.find({user_id : data.user_id}).next()
+  if (amAdmin == null){
+    return ("User does not exist")
+  }
+  else if (amAdmin.role == "admin"){
+    return ("Admin cannot be deleted!")
+  }
+  else{
   success = await user.deleteOne({user_id : data.user_id})
   return (success) // return success message
+  }
 }
 
 async function registerVisitor(newdata, currentUser) {

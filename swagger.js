@@ -20,7 +20,7 @@
  *     tags:
  *      - Login
  *     summary: Perform user login
- *     description: Endpoint for user authentication
+ *     description: Enter your user ID and password to login and access the APIs.
  *     requestBody:
  *      description: User login information
  *      required: true
